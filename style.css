@@ -204,6 +204,9 @@ main {
     background: var(--blue);
     border-radius: 50%;
     flex-shrink: 0;
+    /* Thêm 2 dòng dưới đây */
+    background-size: cover;
+    background-position: center;
 }
 
 textarea {

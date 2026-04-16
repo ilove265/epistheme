@@ -77,6 +77,30 @@
         </div>
     </section>
 
+    
+
+<div id="exam-modal" class="modal">
+    <div class="modal-content" style="height: auto; padding: 20px;">
+        <h3>Tạo đề thi mới</h3>
+        <input type="text" id="exam-title" placeholder="Tên đề thi...">
+        <select id="exam-subject">
+            <option value="Toán">Toán Học</option>
+            <option value="Lý">Vật Lý</option>
+            <option value="Anh">Tiếng Anh</option>
+        </select>
+        <div style="margin: 15px 0;">
+            <button class="btn-ghost" id="btn-manual-input">Tự soạn nội dung</button>
+            <button class="btn-ghost" id="btn-upload-file">Upload file (.pdf, .docx)</button>
+        </div>
+        <textarea id="exam-content" placeholder="Nhập nội dung đề thi tại đây..." style="display:none; height: 150px;"></textarea>
+        <input type="file" id="exam-file-input" style="display:none;">
+        <div style="display:flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+            <button id="cancel-exam" class="btn-ghost">Hủy</button>
+            <button id="save-exam" class="btn-primary">Lưu đề thi</button>
+        </div>
+    </div>
+</div>
+
     <section id="flashcards" class="content-section">
         <h2>Học Tiếng Anh</h2>
         <div class="flashcard-container">
@@ -95,65 +119,13 @@
         <div class="feed-container">
             <div class="post-input-container card">
                 <div class="input-row">
-                    <div class="avatar-small"></div>
+                    <div class="avatar-small" id="user-post-avatar"></div>
                     <textarea placeholder="Bạn đang học gì thế? Chia sẻ tài liệu nhé..."></textarea>
                 </div>
                 <div class="input-actions">
                     <button class="btn-ghost"><i class="fas fa-image"></i> Ảnh/Video</button>
                     <button class="btn-ghost"><i class="fas fa-file-alt"></i> Tài liệu</button>
                     <button class="btn-primary">Đăng bài</button>
-                </div>
-            </div>
-
-            <div class="post-card card">
-                <div class="post-header">
-                    <div class="avatar-small"></div>
-                    <div class="post-info">
-                        <strong>Lê Minh Tâm</strong>
-                        <span>2 giờ trước • <i class="fas fa-globe-asia"></i></span>
-                    </div>
-                    <i class="fas fa-ellipsis-h post-menu"></i>
-                </div>
-                <div class="post-content">
-                    <p>Gửi mọi người bộ Flashcard IELTS Writing Task 2 mình tự soạn rất kỹ, hy vọng giúp ích cho mọi người trong kỳ thi tới! ✍️</p>
-                    <div class="file-attachment">
-                        <div class="file-icon"><i class="fas fa-file-archive"></i></div>
-                        <div class="file-details">
-                            <p class="file-name">IELTS_Writing_Task2_Pro.zip</p>
-                            <p class="file-size">4.5 MB</p>
-                        </div>
-                        <button class="btn-download"><i class="fas fa-download"></i></button>
-                    </div>
-                </div>
-                <div class="post-stats">
-                    <span><i class="fas fa-heart"></i> 128 yêu thích</span>
-                    <span>42 bình luận</span>
-                </div>
-                <div class="post-actions">
-                    <button><i class="far fa-heart"></i> Thích</button>
-                    <button><i class="far fa-comment"></i> Bình luận</button>
-                    <button><i class="far fa-share-square"></i> Chia sẻ</button>
-                </div>
-            </div>
-
-            <div class="post-card card">
-                <div class="post-header">
-                    <div class="avatar-small" style="background: #FBCFE8;"></div>
-                    <div class="post-info">
-                        <strong>Nguyễn Thu Thảo</strong>
-                        <span>5 giờ trước • <i class="fas fa-users"></i></span>
-                    </div>
-                </div>
-                <div class="post-content">
-                    <p>Có ai muốn lập team học nhóm Lý vào tối thứ 5 không ạ? Mình đang yếu phần Điện xoay chiều. ⚡</p>
-                </div>
-                <div class="post-stats">
-                    <span><i class="fas fa-thumbs-up"></i> 15 người quan tâm</span>
-                </div>
-                <div class="post-actions">
-                    <button><i class="far fa-thumbs-up"></i> Quan tâm</button>
-                    <button><i class="far fa-comment"></i> Bình luận</button>
-                    <button><i class="far fa-share-square"></i> Chia sẻ</button>
                 </div>
             </div>
         </div>

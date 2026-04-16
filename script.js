@@ -1,6 +1,7 @@
 import { auth, db, provider } from './firebase-config.js';
 import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth"; 
 import { doc, setDoc, getDoc } from "firebase/firestore";
+import { collection, addDoc, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy } from "firebase/firestore";
 document.addEventListener('DOMContentLoaded', () => {
     // Lấy các phần tử giao diện
     const loginBtn = document.getElementById('login-btn');
@@ -195,6 +196,9 @@ document.addEventListener('DOMContentLoaded', () => {
                 currentUserData = userDoc.data();
                 console.log("Tính cách AI của bạn là:", currentUserData.ai_personality);
             }
+            updateUIWithUser(user);
+            loadUserExams(user.uid); // Chỉ hiện đề của mình
+            loadCommunityFeed();     // Hiện bảng tin chung
         } else {
             // --- NGƯỜI DÙNG CHƯA ĐĂNG NHẬP ---
             loginBtn.style.display = 'block';
@@ -205,5 +209,151 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Gán sự kiện cho nút bấm
     loginBtn.addEventListener('click', handleLogin);
+
+
+    // --- QUẢN LÝ ĐỀ THI ---
+const examModal = document.getElementById('exam-modal');
+const btnCreateExam = document.querySelector('#exams .btn-primary');
+const examListContainer = document.querySelector('#exams .grid-layout');
+
+// Mở modal tạo đề
+btnCreateExam.onclick = () => examModal.style.display = 'block';
+document.getElementById('cancel-exam').onclick = () => examModal.style.display = 'none';
+
+// Toggle cách nhập liệu
+document.getElementById('btn-manual-input').onclick = () => {
+    document.getElementById('exam-content').style.display = 'block';
+    document.getElementById('exam-file-input').style.display = 'none';
+};
+document.getElementById('btn-upload-file').onclick = () => {
+    document.getElementById('exam-file-input').style.display = 'block';
+    document.getElementById('exam-content').style.display = 'none';
+};
+
+// Lưu đề thi vào Firestore
+document.getElementById('save-exam').onclick = async () => {
+    if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
+    
+    const title = document.getElementById('exam-title').value;
+    const subject = document.getElementById('exam-subject').value;
+    const content = document.getElementById('exam-content').value;
+
+    try {
+        await addDoc(collection(db, "exams"), {
+            userId: auth.currentUser.uid,
+            title,
+            subject,
+            content,
+            createdAt: new Date()
+        });
+        alert("Đã tạo đề thi thành công!");
+        examModal.style.display = 'none';
+    } catch (e) { console.error(e); }
+};
+
+// Hàm hiển thị danh sách đề thi CỦA RIÊNG USER
+function loadUserExams(uid) {
+    const q = query(collection(db, "exams"), where("userId", "==", uid));
+    onSnapshot(q, (snapshot) => {
+        examListContainer.innerHTML = ''; // Clear cũ
+        snapshot.forEach((doc) => {
+            const exam = doc.data();
+            examListContainer.innerHTML += `
+                <div class="card exam-card">
+                    <div class="exam-tag">${exam.subject}</div>
+                    <h3>${exam.title}</h3>
+                    <button class="btn-ghost share-exam-btn" data-id="${doc.id}">Chia sẻ lên cộng đồng</button>
+                </div>
+            `;
+        });
+    });
+}
+
+
+// --- CỘNG ĐỒNG CHIA SẺ TÀI LIỆU ---
+const postBtn = document.querySelector('.post-input-container .btn-primary');
+const postTextarea = document.querySelector('.post-input-container textarea');
+const feedContainer = document.querySelector('.feed-container');
+
+// 1. Hiện AVT người dùng đang đăng nhập vào ô post
+function updateUIWithUser(user) {
+    // 1. Cập nhật ảnh cho vòng tròn xanh trong phần đăng bài cộng đồng
+    const userPostAvt = document.getElementById('user-post-avatar');
+    if (userPostAvt && user.photoURL) {
+        userPostAvt.style.backgroundImage = `url(${user.photoURL})`;
+        // Khi đã có ảnh thì bỏ màu nền xanh mặc định đi
+        userPostAvt.style.backgroundColor = 'transparent'; 
+    }
+
+    // 2. (Tùy chọn) Nếu bạn muốn hiện cả avatar của người đăng trong danh sách bài viết bên dưới
+    // Bạn cần sửa trong hàm loadCommunityFeed() đoạn render HTML của mỗi post
+    // bằng cách dùng: <img src="${post.userAvatar}" class="avatar-small">
+}
+
+// 2. Đăng bài
+postBtn.onclick = async () => {
+    if (!auth.currentUser) return alert("Hãy đăng nhập để đăng bài!");
+    const text = postTextarea.value.trim();
+    if (!text) return;
+
+    await addDoc(collection(db, "posts"), {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName,
+        userAvatar: auth.currentUser.photoURL,
+        content: text,
+        likes: [],
+        createdAt: new Date()
+    });
+    postTextarea.value = '';
+};
+
+// 3. Load bảng tin cộng đồng
+function loadCommunityFeed() {
+    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+    onSnapshot(q, (snapshot) => {
+        // Xóa các bài đăng cũ trừ ô nhập liệu
+        const postCards = document.querySelectorAll('.post-card');
+        postCards.forEach(card => card.remove());
+
+        snapshot.forEach((doc) => {
+            const post = doc.data();
+            const postId = doc.id;
+            const isLiked = post.likes.includes(auth.currentUser?.uid);
+
+            const postHTML = `
+                <div class="post-card card">
+                    <div class="post-header">
+                        <img src="${post.userAvatar}" class="avatar-small">
+                        <div class="post-info">
+                            <strong>${post.userName}</strong>
+                            <span>Vừa xong</span>
+                        </div>
+                    </div>
+                    <div class="post-content"><p>${post.content}</p></div>
+                    <div class="post-stats">
+                        <span><i class="fas fa-heart"></i> ${post.likes.length} yêu thích</span>
+                    </div>
+                    <div class="post-actions">
+                        <button onclick="handleLike('${postId}', ${isLiked})" style="color: ${isLiked ? 'red' : 'inherit'}">
+                            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> Thích
+                        </button>
+                        <button><i class="far fa-comment"></i> Bình luận</button>
+                    </div>
+                </div>
+            `;
+            feedContainer.insertAdjacentHTML('beforeend', postHTML);
+        });
+    });
+}
+
+// 4. Xử lý Like
+window.handleLike = async (postId, isLiked) => {
+    if (!auth.currentUser) return alert("Đăng nhập để like!");
+    const postRef = doc(db, "posts", postId);
+    await updateDoc(postRef, {
+        likes: isLiked ? arrayRemove(auth.currentUser.uid) : arrayUnion(auth.currentUser.uid)
+    });
+};
+
 
 });
