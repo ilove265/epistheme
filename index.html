@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Study Platform</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<aside>
+    <div class="logo"><i class="fas fa-bolt"></i> AI STUDY</div>
+    <nav>
+        <ul>
+            <li class="nav-item active" data-target="exams"><i class="fas fa-edit"></i> Đề thi & Tạo đề</li>
+            <li class="nav-item" data-target="flashcards"><i class="fas fa-clone"></i> Flashcards</li>
+            <li class="nav-item" data-target="scheduler"><i class="fas fa-calendar-alt"></i> AI Scheduler</li>
+            <li class="nav-item" data-target="social"><i class="fas fa-hashtag"></i> Cộng đồng</li>
+        </ul>
+    </nav>
+
+    <div class="ai-sidebar-assistant">
+        <div class="ai-avatar">
+            <div class="ai-status"></div>
+            <i class="fas fa-robot"></i>
+        </div>
+        <div class="ai-info">
+            <p class="ai-name">AI Assistant</p>
+            <p class="ai-status-text">Đang sẵn sàng giúp bạn!</p>
+        </div>
+    </div>
+</aside>
+
+
+<div id="ai-chat-window" class="chat-window">
+    <div class="chat-header">
+        <i class="fas fa-robot"></i>
+        <span>AI Assistant</span>
+        <button id="close-chat"><i class="fas fa-times"></i></button>
+    </div>
+    <div id="chat-content" class="chat-content">
+        <div class="msg bot-msg">Chào bạn! Mình có thể giúp gì cho việc học của bạn hôm nay?</div>
+    </div>
+    <div class="chat-input-area">
+        <input type="text" id="user-input" placeholder="Hỏi AI điều gì đó...">
+        <button id="send-btn"><i class="fas fa-paper-plane"></i></button>
+    </div>
+</div>
+
+<main>
+    <section id="exams" class="content-section active">
+        <div class="section-header">
+            <h2>Kho Đề Thi</h2>
+            <button class="btn-primary"><i class="fas fa-plus"></i> Tạo đề thi mới</button>
+        </div>
+        <div class="grid-layout">
+            <div class="card exam-card">
+                <div class="exam-tag">Toán Học</div>
+                <h3>Đề thi thử THPT Quốc Gia 2026</h3>
+                <p>Số câu: 50 | Thời gian: 90 phút</p>
+            </div>
+        </div>
+    </section>
+
+    <section id="flashcards" class="content-section">
+        <h2>Học Tiếng Anh</h2>
+        <div class="flashcard-container">
+            <div class="flashcard" id="flashcard">
+                <div class="flashcard-inner">
+                    <div class="flashcard-front">Resilience</div>
+                    <div class="flashcard-back">Sự kiên cường, khả năng phục hồi nhanh chóng sau khó khăn.</div>
+                </div>
+            </div>
+            <p class="hint">Click vào thẻ để xem nghĩa</p>
+        </div>
+    </section>
+
+    <section id="social" class="content-section">
+        <h2>Bảng tin cộng đồng</h2>
+        <div class="feed-container">
+            <div class="post-input-container card">
+                <div class="input-row">
+                    <div class="avatar-small"></div>
+                    <textarea placeholder="Bạn đang học gì thế? Chia sẻ tài liệu nhé..."></textarea>
+                </div>
+                <div class="input-actions">
+                    <button class="btn-ghost"><i class="fas fa-image"></i> Ảnh/Video</button>
+                    <button class="btn-ghost"><i class="fas fa-file-alt"></i> Tài liệu</button>
+                    <button class="btn-primary">Đăng bài</button>
+                </div>
+            </div>
+
+            <div class="post-card card">
+                <div class="post-header">
+                    <div class="avatar-small"></div>
+                    <div class="post-info">
+                        <strong>Lê Minh Tâm</strong>
+                        <span>2 giờ trước • <i class="fas fa-globe-asia"></i></span>
+                    </div>
+                    <i class="fas fa-ellipsis-h post-menu"></i>
+                </div>
+                <div class="post-content">
+                    <p>Gửi mọi người bộ Flashcard IELTS Writing Task 2 mình tự soạn rất kỹ, hy vọng giúp ích cho mọi người trong kỳ thi tới! ✍️</p>
+                    <div class="file-attachment">
+                        <div class="file-icon"><i class="fas fa-file-archive"></i></div>
+                        <div class="file-details">
+                            <p class="file-name">IELTS_Writing_Task2_Pro.zip</p>
+                            <p class="file-size">4.5 MB</p>
+                        </div>
+                        <button class="btn-download"><i class="fas fa-download"></i></button>
+                    </div>
+                </div>
+                <div class="post-stats">
+                    <span><i class="fas fa-heart"></i> 128 yêu thích</span>
+                    <span>42 bình luận</span>
+                </div>
+                <div class="post-actions">
+                    <button><i class="far fa-heart"></i> Thích</button>
+                    <button><i class="far fa-comment"></i> Bình luận</button>
+                    <button><i class="far fa-share-square"></i> Chia sẻ</button>
+                </div>
+            </div>
+
+            <div class="post-card card">
+                <div class="post-header">
+                    <div class="avatar-small" style="background: #FBCFE8;"></div>
+                    <div class="post-info">
+                        <strong>Nguyễn Thu Thảo</strong>
+                        <span>5 giờ trước • <i class="fas fa-users"></i></span>
+                    </div>
+                </div>
+                <div class="post-content">
+                    <p>Có ai muốn lập team học nhóm Lý vào tối thứ 5 không ạ? Mình đang yếu phần Điện xoay chiều. ⚡</p>
+                </div>
+                <div class="post-stats">
+                    <span><i class="fas fa-thumbs-up"></i> 15 người quan tâm</span>
+                </div>
+                <div class="post-actions">
+                    <button><i class="far fa-thumbs-up"></i> Quan tâm</button>
+                    <button><i class="far fa-comment"></i> Bình luận</button>
+                    <button><i class="far fa-share-square"></i> Chia sẻ</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
