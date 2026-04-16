@@ -212,69 +212,207 @@ document.addEventListener('DOMContentLoaded', () => {
 
 
     // --- QUẢN LÝ ĐỀ THI ---
-const examModal = document.getElementById('exam-modal');
-const btnCreateExam = document.querySelector('#exams .btn-primary');
-const examListContainer = document.querySelector('#exams .grid-layout');
 
-// Mở modal tạo đề
-btnCreateExam.onclick = () => examModal.style.display = 'block';
-document.getElementById('cancel-exam').onclick = () => examModal.style.display = 'none';
+    // --- KHAI BÁO THÊM PHẦN TỬ ---
+const editorOverlay = document.getElementById('exam-editor-overlay');
+const quizOverlay = document.getElementById('quiz-player-overlay');
+const questionsList = document.getElementById('questions-list');
+const examListContainer = document.querySelector('#exams .grid-layout') || document.querySelector('.grid-layout');
+const quizContent = document.getElementById('quiz-content');
+let currentQuestions = []; // Lưu danh sách câu hỏi đang soạn
 
-// Toggle cách nhập liệu
-document.getElementById('btn-manual-input').onclick = () => {
-    document.getElementById('exam-content').style.display = 'block';
-    document.getElementById('exam-file-input').style.display = 'none';
+window.deleteExam = async (e, examId) => {
+        e.stopPropagation(); // Ngăn việc nhấn Xóa nhưng lại nhảy vào làm bài
+        if (confirm("Bạn có chắc chắn muốn xóa đề thi này không?")) {
+            try {
+                await deleteDoc(doc(db, "exams", examId));
+                alert("Đã xóa đề thi!");
+            } catch (error) {
+                console.error("Lỗi khi xóa:", error);
+            }
+        }
+    };
+
+// 1. Mở trình soạn đề
+document.querySelector('#exams .btn-primary').onclick = () => {
+    editorOverlay.style.display = 'flex';
+    currentQuestions = [];
+    questionsList.innerHTML = '';
+    addQuestion(); // Tự động thêm câu 1
 };
-document.getElementById('btn-upload-file').onclick = () => {
-    document.getElementById('exam-file-input').style.display = 'block';
-    document.getElementById('exam-content').style.display = 'none';
+
+// 2. Thoát trình soạn
+document.getElementById('exit-editor').onclick = () => {
+    if(confirm("Bạn có chắc muốn thoát? Dữ liệu chưa lưu sẽ mất.")) {
+        editorOverlay.style.display = 'none';
+    }
 };
 
-// Lưu đề thi vào Firestore
-document.getElementById('save-exam').onclick = async () => {
-    if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
+// 3. Hàm thêm một câu hỏi trắc nghiệm mới vào giao diện
+function addQuestion() {
+    const qIndex = currentQuestions.length + 1;
+    const qDiv = document.createElement('div');
+    qDiv.className = 'question-item card';
+    qDiv.innerHTML = `
+        <h4>Câu hỏi ${qIndex}</h4>
+        <textarea placeholder="Nhập câu hỏi tại đây..." class="q-text"></textarea>
+        <div class="option-group">
+            <input type="text" placeholder="Đáp án A" class="opt-a">
+            <input type="text" placeholder="Đáp án B" class="opt-b">
+            <input type="text" placeholder="Đáp án C" class="opt-c">
+            <input type="text" placeholder="Đáp án D" class="opt-d">
+        </div>
+        <select class="correct-opt">
+            <option value="A">Đáp án đúng: A</option>
+            <option value="B">Đáp án đúng: B</option>
+            <option value="C">Đáp án đúng: C</option>
+            <option value="D">Đáp án đúng: D</option>
+        </select>
+    `;
+    questionsList.appendChild(qDiv);
+    currentQuestions.push({}); // Giữ chỗ trong mảng
+}
+document.getElementById('add-question-btn').onclick = addQuestion;
+
+// 4. Lưu đề thi vào Firestore
+document.getElementById('save-exam-btn').onclick = async () => {
+    const title = document.getElementById('editor-title').value;
+    const subject = document.getElementById('editor-subject').value;
+    const qItems = document.querySelectorAll('.question-item');
     
-    const title = document.getElementById('exam-title').value;
-    const subject = document.getElementById('exam-subject').value;
-    const content = document.getElementById('exam-content').value;
+    let finalQuestions = [];
+    qItems.forEach(item => {
+        finalQuestions.push({
+            question: item.querySelector('.q-text').value,
+            options: {
+                A: item.querySelector('.opt-a').value,
+                B: item.querySelector('.opt-b').value,
+                C: item.querySelector('.opt-c').value,
+                D: item.querySelector('.opt-d').value,
+            },
+            answer: item.querySelector('.correct-opt').value
+        });
+    });
 
     try {
         await addDoc(collection(db, "exams"), {
             userId: auth.currentUser.uid,
             title,
             subject,
-            content,
+            questions: finalQuestions,
             createdAt: new Date()
         });
         alert("Đã tạo đề thi thành công!");
-        examModal.style.display = 'none';
+        editorOverlay.style.display = 'none';
     } catch (e) { console.error(e); }
 };
 
-// Hàm hiển thị danh sách đề thi CỦA RIÊNG USER
-function loadUserExams(uid) {
-    const q = query(collection(db, "exams"), where("userId", "==", uid));
-    onSnapshot(q, (snapshot) => {
-        examListContainer.innerHTML = ''; // Clear cũ
-        snapshot.forEach((doc) => {
-            const exam = doc.data();
-            examListContainer.innerHTML += `
-                <div class="card exam-card">
-                    <div class="exam-tag">${exam.subject}</div>
-                    <h3>${exam.title}</h3>
-                    <button class="btn-ghost share-exam-btn" data-id="${doc.id}">Chia sẻ lên cộng đồng</button>
+// 5. Hàm Bắt đầu làm bài (Khi ấn vào thẻ đề thi)
+window.startQuiz = async (examId) => {
+        const docSnap = await getDoc(doc(db, "exams", examId));
+        if (docSnap.exists()) {
+            const exam = docSnap.data();
+            
+            // Xây dựng lại giao diện Quiz Player để nút "Nộp bài" trên cùng hoạt động
+            quizOverlay.innerHTML = `
+                <div class="quiz-player-container" style="width:100%; height:100%; display:flex; flex-direction:column; background:white;">
+                    <header class="quiz-header" style="padding: 20px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
+                        <h2 id="quiz-display-title" style="color:var(--primary)">${exam.title}</h2>
+                        <div class="quiz-controls">
+                            <button id="top-submit-btn" class="btn-primary">Nộp bài</button>
+                            <button onclick="document.getElementById('quiz-player-overlay').style.display='none'" class="btn-ghost">Thoát</button>
+                        </div>
+                    </header>
+                    <div id="quiz-content" style="flex-grow:1; overflow-y:auto; padding:40px;">
+                        </div>
                 </div>
             `;
-        });
-    });
-}
+            
+            const quizInnerContent = quizOverlay.querySelector('#quiz-content');
 
+            exam.questions.forEach((q, index) => {
+                const qCard = document.createElement('div');
+                qCard.className = 'card quiz-q-card';
+                qCard.style.marginBottom = '20px';
+                qCard.style.padding = '25px';
+                qCard.innerHTML = `
+                    <p style="font-size:1.1rem; margin-bottom:15px;"><strong>Câu ${index + 1}:</strong> ${q.question}</p>
+                    <div class="quiz-options" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        ${['A','B','C','D'].map(opt => `
+                            <label style="display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #eee; border-radius:10px; cursor:pointer;">
+                                <input type="radio" name="q${index}" value="${opt}">
+                                <span><strong>${opt}.</strong> ${q.options[opt]}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                quizInnerContent.appendChild(qCard);
+            });
+
+            quizOverlay.style.display = 'flex';
+
+            // Xử lý nộp bài từ nút phía trên
+            document.getElementById('top-submit-btn').onclick = () => {
+                let correctCount = 0;
+                const total = exam.questions.length;
+
+                exam.questions.forEach((q, index) => {
+                    const selected = quizOverlay.querySelector(`input[name="q${index}"]:checked`)?.value;
+                    if (selected === q.answer) {
+                        correctCount++;
+                    }
+                });
+
+                // Tính điểm trên thang 10
+                const score = ((correctCount / total) * 10).toFixed(2);
+                
+                alert(`Chúc mừng! Bạn đã hoàn thành bài thi.\nSố câu đúng: ${correctCount}/${total}\nĐiểm số: ${score}/10`);
+                quizOverlay.style.display = 'none';
+            };
+        }
+    };
+
+// 6. Sửa lại hàm hiển thị danh sách đề thi để có nút "Làm bài"
+function loadUserExams(uid) {
+        if (!examListContainer) return;
+        const q = query(collection(db, "exams"), where("userId", "==", uid));
+        
+        onSnapshot(q, (snapshot) => {
+            examListContainer.innerHTML = '';
+            snapshot.forEach((docSnap) => {
+                const exam = docSnap.data();
+                const examId = docSnap.id;
+                
+                const card = document.createElement('div');
+                card.className = 'card exam-card';
+                card.onclick = () => window.startQuiz(examId);
+
+                card.innerHTML = `
+                    <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="exam-tag">${exam.subject}</div>
+                        <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <h3 style="margin-top:10px">${exam.title}</h3>
+                    <p style="font-size:0.85rem; color:var(--gray)"><i class="fas fa-list-ul"></i> ${exam.questions?.length || 0} câu hỏi</p>
+                    <div style="margin-top:15px; display:flex; justify-content:space-between; align-items:center;">
+                         <span style="font-size:0.8rem; color:#cbd5e0">${new Date(exam.createdAt?.toDate()).toLocaleDateString()}</span>
+                         <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Làm bài</button>
+                    </div>
+                `;
+                examListContainer.appendChild(card);
+            });
+        });
+    }
 
 // --- CỘNG ĐỒNG CHIA SẺ TÀI LIỆU ---
 const postBtn = document.querySelector('.post-input-container .btn-primary');
 const postTextarea = document.querySelector('.post-input-container textarea');
 const feedContainer = document.querySelector('.feed-container');
-
+    const btnChooseExam = document.getElementById('btn-choose-exam');
+    const examSelectorModal = document.getElementById('exam-selector-modal');
+    const selectorExamList = document.getElementById('selector-exam-list');
 // 1. Hiện AVT người dùng đang đăng nhập vào ô post
 function updateUIWithUser(user) {
     // 1. Cập nhật ảnh cho vòng tròn xanh trong phần đăng bài cộng đồng
@@ -307,44 +445,121 @@ postBtn.onclick = async () => {
     postTextarea.value = '';
 };
 
-// 3. Load bảng tin cộng đồng
-function loadCommunityFeed() {
-    const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
-    onSnapshot(q, (snapshot) => {
-        // Xóa các bài đăng cũ trừ ô nhập liệu
-        const postCards = document.querySelectorAll('.post-card');
-        postCards.forEach(card => card.remove());
+//đăng bài thi
+btnChooseExam.onclick = async () => {
+        if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
+        examSelectorModal.style.display = 'flex';
+        selectorExamList.innerHTML = 'Đang tải...';
 
-        snapshot.forEach((doc) => {
-            const post = doc.data();
-            const postId = doc.id;
-            const isLiked = post.likes.includes(auth.currentUser?.uid);
-
-            const postHTML = `
-                <div class="post-card card">
-                    <div class="post-header">
-                        <img src="${post.userAvatar}" class="avatar-small">
-                        <div class="post-info">
-                            <strong>${post.userName}</strong>
-                            <span>Vừa xong</span>
-                        </div>
+        const q = query(collection(db, "exams"), where("userId", "==", auth.currentUser.uid));
+        // const snap = await getDoc(collection(db, "exams")); // Lấy nhanh danh sách
+        
+        // Render danh sách đề để chọn
+        onSnapshot(q, (snapshot) => {
+        selectorExamList.innerHTML = '';
+        if (snapshot.empty) {
+            selectorExamList.innerHTML = '<p style="padding:10px;">Bạn chưa có đề thi nào để chia sẻ.</p>';
+            return;
+        }
+        
+        snapshot.forEach(docSnap => {
+            const ex = docSnap.data();
+            const item = document.createElement('div');
+            item.className = 'card selector-item';
+            item.style = "margin-bottom: 10px; cursor: pointer; padding: 15px; border: 1px solid #eee; transition: 0.3s;";
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${ex.title}</strong>< clouds br>
+                        <small style="color:var(--gray)">Môn: ${ex.subject}</small>
                     </div>
-                    <div class="post-content"><p>${post.content}</p></div>
-                    <div class="post-stats">
-                        <span><i class="fas fa-heart"></i> ${post.likes.length} yêu thích</span>
-                    </div>
-                    <div class="post-actions">
-                        <button onclick="handleLike('${postId}', ${isLiked})" style="color: ${isLiked ? 'red' : 'inherit'}">
-                            <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> Thích
-                        </button>
-                        <button><i class="far fa-comment"></i> Bình luận</button>
-                    </div>
+                    <i class="fas fa-chevron-right" style="color:var(--primary)"></i>
                 </div>
             `;
-            feedContainer.insertAdjacentHTML('beforeend', postHTML);
+            item.onclick = () => shareExamToCommunity(docSnap.id, ex);
+            
+            // Thêm hiệu ứng hover bằng JS (hoặc CSS)
+            item.onmouseover = () => item.style.borderColor = "var(--primary)";
+            item.onmouseout = () => item.style.borderColor = "#eee";
+            
+            selectorExamList.appendChild(item);
         });
     });
-}
+        selectorExamList.innerHTML = '';
+        if (snapshot.empty) {
+            selectorExamList.innerHTML = '<p style="padding:10px;">Bạn chưa có đề thi nào để chia sẻ.</p>';
+            return;
+        }
+    };
+
+    async function shareExamToCommunity(examId, examData) {
+        if (!confirm(`Bạn muốn chia sẻ đề "${examData.title}" lên cộng đồng?`)) return;
+        
+        await addDoc(collection(db, "posts"), {
+            userId: auth.currentUser.uid,
+            userName: auth.currentUser.displayName,
+            userAvatar: auth.currentUser.photoURL,
+            type: "exam",
+            examId: examId,
+            examTitle: examData.title,
+            examSubject: examData.subject,
+            content: `Mình vừa tạo một đề thi mới về ${examData.subject}. Mọi người cùng vào thử sức nhé!`,
+            likes: [],
+            createdAt: new Date()
+        });
+
+        examSelectorModal.style.display = 'none';
+        alert("Đã chia sẻ thành công!");
+    }
+
+// 3. Load bảng tin cộng đồng
+function loadCommunityFeed() {
+        const q = query(collection(db, "posts"), orderBy("createdAt", "desc"));
+        onSnapshot(q, (snapshot) => {
+            const oldPosts = document.querySelectorAll('.post-card');
+            oldPosts.forEach(p => p.remove());
+
+            snapshot.forEach((docSnap) => {
+                const post = docSnap.data();
+                const postId = docSnap.id;
+                const isLiked = post.likes.includes(auth.currentUser?.uid);
+
+                let postBodyHTML = `<p>${post.content}</p>`;
+                
+                // Nếu bài đăng là loại Đề thi, hiển thị card đề thi đặc biệt
+                if (post.type === "exam") {
+                    postBodyHTML = `
+                        <p>${post.content}</p>
+                        <div class="card" style="border-left: 5px solid var(--primary); background: #f0f2ff; margin-top: 10px; padding: 15px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <span class="exam-tag" style="background:var(--primary); color:white">${post.examSubject}</span>
+                                    <h4 style="margin: 5px 0;">${post.examTitle}</h4>
+                                </div>
+                                <button class="btn-primary" onclick="window.startQuiz('${post.examId}')">Thử sức ngay</button>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const postHTML = `
+                    <div class="post-card card">
+                        <div class="post-header">
+                            <img src="${post.userAvatar}" class="avatar-small">
+                            <div class="post-info"><strong>${post.userName}</strong><span>Mới đăng</span></div>
+                        </div>
+                        <div class="post-content">${postBodyHTML}</div>
+                        <div class="post-actions">
+                            <button onclick="handleLike('${postId}', ${isLiked})" style="color: ${isLiked ? 'red' : 'inherit'}">
+                                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${post.likes.length}
+                            </button>
+                        </div>
+                    </div>
+                `;
+                feedContainer.insertAdjacentHTML('beforeend', postHTML);
+            });
+        });
+    }
 
 // 4. Xử lý Like
 window.handleLike = async (postId, isLiked) => {

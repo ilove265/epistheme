@@ -123,13 +123,68 @@
                     <textarea placeholder="Bạn đang học gì thế? Chia sẻ tài liệu nhé..."></textarea>
                 </div>
                 <div class="input-actions">
+                    <button id="btn-choose-exam" class="btn-ghost"><i class="fas fa-file-signature"></i> Bài tập</button>
                     <button class="btn-ghost"><i class="fas fa-image"></i> Ảnh/Video</button>
                     <button class="btn-ghost"><i class="fas fa-file-alt"></i> Tài liệu</button>
                     <button class="btn-primary">Đăng bài</button>
                 </div>
             </div>
         </div>
+        <div id="exam-selector-modal" class="modal" style="display: none; align-items: center; justify-content: center;">
+    <div class="modal-content" style="width: 400px; height: auto; max-height: 80vh; padding: 20px;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+            <h3>Chọn đề thi muốn chia sẻ</h3>
+            <button onclick="document.getElementById('exam-selector-modal').style.display='none'" class="btn-ghost">&times;</button>
+        </div>
+        <div id="selector-exam-list" style="overflow-y: auto;">
+            </div>
+    </div>
+</div>
     </section>
+
+    <section id="exam-editor-overlay" class="fullscreen-overlay">
+    <div class="overlay-header">
+        <button id="exit-editor" class="btn-ghost"><i class="fas fa-arrow-left"></i> Quay lại</button>
+        <h2>Trình biên soạn đề thi</h2>
+        <button id="save-exam-btn" class="btn-primary">Hoàn thành & Lưu</button>
+    </div>
+    
+    <div class="editor-container">
+        <div class="editor-sidebar card">
+            <h3>Thông tin chung</h3>
+            <input type="text" id="editor-title" placeholder="Tên đề thi (VD: Kiểm tra 15p Lý)">
+            <select id="editor-subject">
+                <option value="Toán">Toán Học</option>
+                <option value="Lý">Vật Lý</option>
+                <option value="Hóa">Hóa Học</option>
+                <option value="Anh">Tiếng Anh</option>
+            </select>
+            <hr>
+            <div class="upload-zone" id="file-upload-zone">
+                <i class="fas fa-cloud-upload-alt"></i>
+                <p>Kéo thả file đề hoặc nhấn để chọn</p>
+                <input type="file" id="editor-file" hidden>
+            </div>
+        </div>
+
+        <div class="editor-main card">
+            <h3>Danh sách câu hỏi</h3>
+            <div id="questions-list">
+                </div>
+            <button id="add-question-btn" class="btn-ghost"><i class="fas fa-plus"></i> Thêm câu hỏi trắc nghiệm</button>
+        </div>
+    </div>
+</section>
+
+<section id="quiz-player-overlay" class="fullscreen-overlay">
+    <div class="overlay-header">
+        <h2 id="quiz-display-title">Đang làm bài</h2>
+        <div id="timer">00:00</div>
+        <button id="submit-quiz-btn" class="btn-primary">Nộp bài</button>
+    </div>
+    <div class="quiz-container" id="quiz-content">
+        </div>
+</section>
 
     </main>
 
