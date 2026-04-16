@@ -43,7 +43,7 @@ document.addEventListener('DOMContentLoaded', () => {
     let chatHistory = [
         {
             role: "user",
-            parts: [{ text: "Bạn là trợ lý AI STUDY cao cấp. Hãy hỗ trợ người dùng học tập, giải đáp kiến thức khoa học, vật lý, và soạn thảo đề thi chuyên nghiệp. Phong cách trả lời: Thông minh, súc tích, hơi hướng tương lai." }]
+            parts: [{ text: "Bạn là trợ lý AI STUDY cao cấp. Hãy hỗ trợ người dùng học tập, giải đáp kiến thức khoa học, vật lý, và soạn thảo đề thi chuyên nghiệp. Phong cách trả lời: ngắn gọn, đơn giản, chỉ tập trung vào câu hỏi của người dùng" }]
         },
         {
             role: "model",
