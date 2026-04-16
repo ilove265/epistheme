@@ -1,5 +1,13 @@
+import { auth, db, provider } from './firebase-config.js';
+import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth"; 
+import { doc, setDoc, getDoc } from "firebase/firestore";
 document.addEventListener('DOMContentLoaded', () => {
-    
+    // Lấy các phần tử giao diện
+    const loginBtn = document.getElementById('login-btn');
+    const logoutBtn = document.getElementById('logout-btn');
+    const userProfile = document.getElementById('user-profile');
+    const userNameDisplay = document.getElementById('user-name');
+    const userAvatar = document.getElementById('user-avatar');
     // 1. Chuyển đổi giữa các Tab (Giữ nguyên)
     const navItems = document.querySelectorAll('.nav-item');
     const sections = document.querySelectorAll('.content-section');
@@ -26,7 +34,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // 3. Cấu hình AI Assistant
     // LƯU Ý: Đảm bảo API Key của bạn còn hạn định mức (Quota)
 
-    const MODEL_NAME = "gemini-2.5-flash";
+    const MODEL_NAME = "gemini-3.1-flash-lite-preview";
 
     const GEMINI_API_KEY = import.meta.env.VITE_GEMINI_API_KEY; 
     const GEMINI_URL = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL_NAME}:generateContent?key=${GEMINI_API_KEY}`;
@@ -64,6 +72,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Hàm gọi API Gemini
     async function callGemini(message) {
+        if (!currentUserData) {
+            alert("Vui lòng đăng nhập để dùng AI!");
+            return;
+        }
+
+        // Ví dụ cách gửi kèm tính cách:
+        const systemPrompt = currentUserData.ai_personality;
+        const finalInput = `[System Instruction: ${systemPrompt}] \n User: ${userInput}`;
         chatHistory.push({ role: "user", parts: [{ text: message }] });
 
         try {
@@ -125,4 +141,69 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
+
+    // 4. TÀI KHOẢN NGƯỜI DÙNG
+    async function handleLogin() {
+    console.log("Đang kích hoạt đăng nhập..."); // Dòng này để kiểm tra nút có ăn không
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+
+            // Kiểm tra xem người dùng đã có thông tin trong Firestore chưa
+            const userDocRef = doc(db, "users", user.uid);
+            const userDoc = await getDoc(userDocRef);
+
+            if (!userDoc.exists()) {
+                // Nếu là người dùng mới, tạo mới thông tin và tính cách AI mặc định
+                await setDoc(userDocRef, {
+                    displayName: user.displayName,
+                    email: user.email,
+                    photoURL: user.photoURL,
+                    ai_personality: "Bạn là một trợ lý học tập thân thiện, luôn giải thích mọi thứ một cách dễ hiểu và cổ vũ người dùng.", // Tính cách mặc định
+                    createdAt: new Date()
+                });
+                console.log("Đã tạo người dùng mới trên Firestore");
+            }
+        
+        } catch (error) {
+            console.error("Lỗi đăng nhập:", error);
+            alert("Đăng nhập thất bại!");
+        }
+    }
+
+    logoutBtn.addEventListener('click', () => {
+        signOut(auth).then(() => {
+            location.reload(); // Load lại trang để xóa sạch dữ liệu cũ
+        });
+    });
+
+    let currentUserData = null; // Biến toàn cục để lưu thông tin người dùng hiện tại
+
+    onAuthStateChanged(auth, async (user) => {
+        if (user) {
+            // --- NGƯỜI DÙNG ĐÃ ĐĂNG NHẬP ---
+            loginBtn.style.display = 'none';
+            userProfile.style.display = 'flex';
+        
+            // Hiển thị thông tin lên giao diện
+            userNameDisplay.innerText = user.displayName;
+            userAvatar.src = user.photoURL;
+
+            // Lấy dữ liệu chi tiết (bao gồm tính cách AI) từ Firestore
+            const userDoc = await getDoc(doc(db, "users", user.uid));
+            if (userDoc.exists()) {
+                currentUserData = userDoc.data();
+                console.log("Tính cách AI của bạn là:", currentUserData.ai_personality);
+            }
+        } else {
+            // --- NGƯỜI DÙNG CHƯA ĐĂNG NHẬP ---
+            loginBtn.style.display = 'block';
+            userProfile.style.display = 'none';
+            currentUserData = null;
+        }
+    });
+
+    // Gán sự kiện cho nút bấm
+    loginBtn.addEventListener('click', handleLogin);
+
 });
