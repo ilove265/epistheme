@@ -266,6 +266,7 @@ postBtn.onclick = async () => {
         userAvatar: auth.currentUser.photoURL,
         content: text,
         likes: [],
+        comments: [],
         createdAt: new Date()
     });
     postTextarea.value = '';
@@ -344,12 +345,43 @@ function loadCommunityFeed() {
         onSnapshot(q, (snapshot) => {
             const oldPosts = document.querySelectorAll('.post-card');
             oldPosts.forEach(p => p.remove());
-
+            
             snapshot.forEach((docSnap) => {
                 const post = docSnap.data();
                 const postId = docSnap.id;
                 const isLiked = post.likes.includes(auth.currentUser?.uid);
+                const comments = post.comments || [];
+                let commentsHTML = '';
+                comments.forEach((cmt, index) => {
+                    // Kiểm tra nếu là chủ sở hữu bình luận
+                    const isCmtOwner = auth.currentUser && cmt.userId === auth.currentUser.uid;
+                    
+                    // Tạo object cmt dạng string để truyền vào hàm xóa (phải cẩn thận với dấu nháy)
+                    const cmtData = JSON.stringify(cmt).replace(/"/g, '&quot;');
 
+                    commentsHTML += `
+                        <div class="comment-item">
+                            <img src="${cmt.userAvatar || './img/favicon.png'}" class="comment-avatar">
+                            <div class="comment-content">
+                                <strong>${escapeHTML(cmt.userName)}</strong>
+                                <span>${escapeHTML(cmt.content)}</span>
+                                
+                                ${isCmtOwner ? `
+                                    <div class="comment-options">
+                                        <button class="btn-options-cmt" onclick="toggleCmtMenu(event, '${postId}-${index}')">
+                                            <i class="fas fa-ellipsis-h"></i>
+                                        </button>
+                                        <div id="dropdown-${postId}-${index}" class="comment-dropdown">
+                                            <button onclick="deleteComment('${postId}', ${cmtData})">
+                                                <i class="fas fa-trash-alt"></i> Xóa
+                                            </button>
+                                        </div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </div>
+                    `;
+                });
                 let postBodyHTML = `<p>${post.content}</p>`;
                 
                 // Nếu bài đăng là loại Đề thi, hiển thị card đề thi đặc biệt
@@ -375,19 +407,36 @@ function loadCommunityFeed() {
                     </button>
                 ` : '';
                 
+                // Kiểm tra xem bài viết này có đang nằm trong danh sách "đang mở" bình luận không
+                const isCommentOpen = window.openCommentSections && window.openCommentSections.has(postId) ? 'block' : 'none';
+
+                const currentUserAvatar = auth.currentUser?.photoURL || '';
                 const postHTML = `
                     <div class="post-card card" style="position: relative;">
                         ${deleteBtnHTML}
                         <div class="post-header">
                             <img src="${post.userAvatar}" class="avatar-small">
-                            <div class="post-info"><strong>${post.userName}</strong><span>Mới đăng</span></div>
+                            <div class="post-info"><strong>${post.userName}</strong><span></span></div>
                         </div>
                         <div class="post-content">${postBodyHTML}</div>
-                        <div class="post-actions">
-                            <button onclick="handleLike('${postId}', ${isLiked})" style="color: ${isLiked ? 'red' : 'inherit'}">
-                                <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${post.likes.length}
-                            </button>
-                        </div>
+                            <div class="post-actions">
+                                <button onclick="handleLike('${postId}', ${isLiked})" style="color: ${isLiked ? 'red' : 'inherit'}">
+                                    <i class="${isLiked ? 'fas' : 'far'} fa-heart"></i> ${post.likes.length}
+                                </button>
+                                <button onclick="toggleComment('${postId}')">
+                                    <i class="far fa-comment"></i> ${comments.length}
+                                </button>
+                            </div>
+                        <div id="comment-section-${postId}" class="comments-section" style="display: ${isCommentOpen};">
+                                <div class="comments-list">${commentsHTML}</div>
+                                <div class="comment-input-area">
+                                    <img src="${currentUserAvatar}" class="comment-avatar">
+                                    <input type="text" id="comment-input-${postId}" placeholder="Viết bình luận..." onkeypress="handleCommentEnter(event, '${postId}')">
+                                    <button class="btn-send-comment" onclick="submitComment('${postId}')">
+                                        <i class="fas fa-paper-plane"></i>
+                                    </button>
+                                </div>
+                            </div>
                     </div>
                 `;
                 
@@ -783,11 +832,111 @@ document.getElementById('btn-prev-card').onclick = () => {
 };
 
 
-// ===================================
-// THUẬT TOÁN BÌNH LUẬN & XÓA BÀI ĐĂNG
-// ===================================
+// ==================================
+// -------THUẬT TOÁN BÌNH LUẬN-------
+// ==================================
 
 
+window.openCommentSections = window.openCommentSections || new Set();
+
+// Hàm làm sạch chuỗi, chống lỗi vỡ giao diện (XSS)
+window.escapeHTML = (str) => {
+    return str ? str.replace(/[&<>'"]/g, tag => ({
+        '&': '&amp;',
+        '<': '&lt;',
+        '>': '&gt;',
+        "'": '&#39;',
+        '"': '&quot;'
+    }[tag])) : '';
+};
+
+window.toggleComment = (postId) => {
+    const section = document.getElementById(`comment-section-${postId}`);
+    if (section) {
+        if (section.style.display === 'block') {
+            section.style.display = 'none';
+            window.openCommentSections.delete(postId); // Xóa khỏi bộ nhớ
+        } else {
+            section.style.display = 'block';
+            window.openCommentSections.add(postId); // Lưu vào bộ nhớ là đang mở
+        }
+    }
+};
+
+// Gửi bình luận lên Firebase
+window.submitComment = async (postId) => {
+    if (!auth.currentUser) return alert("Vui lòng đăng nhập để bình luận!");
+    
+    const inputEl = document.getElementById(`comment-input-${postId}`);
+    const text = inputEl.value.trim();
+    if (!text) return;
+
+    //inputEl.disabled = true; // Khóa ô nhập trong lúc gửi
+
+    const newComment = {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName,
+        userAvatar: auth.currentUser.photoURL,
+        content: text,
+        createdAt: new Date().getTime()
+    };
+
+    try {
+        const postRef = doc(db, "posts", postId);
+        await updateDoc(postRef, {
+            comments: arrayUnion(newComment) // Thêm bình luận mới vào mảng
+        });
+
+        // Không cần clear input thủ công vì onSnapshot sẽ render lại UI ngay lập tức
+    } catch (error) {
+        console.error("Lỗi khi gửi bình luận:", error);
+        alert("Đã xảy ra lỗi khi gửi bình luận.");
+        inputEl.disabled = false;
+    }
+};
+
+// Nhấn Enter để gửi bình luận
+window.handleCommentEnter = (event, postId) => {
+    if (event.key === 'Enter') {
+        submitComment(postId);
+    }
+};
+
+// Đóng mở menu 3 chấm
+window.toggleCmtMenu = (event, menuId) => {
+    event.stopPropagation();
+    // Đóng tất cả các menu khác đang mở
+    document.querySelectorAll('.comment-dropdown').forEach(el => {
+        if(el.id !== `dropdown-${menuId}`) el.style.display = 'none';
+    });
+
+    const menu = document.getElementById(`dropdown-${menuId}`);
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+};
+
+// Đóng menu khi click ra ngoài
+document.addEventListener('click', () => {
+    document.querySelectorAll('.comment-dropdown').forEach(el => el.style.display = 'none');
+});
+
+// Hàm xóa bình luận
+window.deleteComment = async (postId, cmtObject) => {
+    if (!confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) return;
+
+    try {
+        const postRef = doc(db, "posts", postId);
+        
+        // Vì comments là một mảng, chúng ta dùng arrayRemove với đúng object đó để xóa
+        await updateDoc(postRef, {
+            comments: arrayRemove(cmtObject)
+        });
+        
+        console.log("Xóa bình luận thành công!");
+    } catch (error) {
+        console.error("Lỗi khi xóa bình luận:", error);
+        alert("Không thể xóa bình luận vào lúc này.");
+    }
+};
 
 // ===============================
 // CẤU TRÚC BIẾN FILE THÀNH ĐỀ THI
@@ -860,7 +1009,7 @@ const liveQuizPreview = document.getElementById('live-quiz-preview');
 // 1. Mở và Thoát trình soạn
 document.querySelector('#exams .btn-primary').onclick = () => {
     editorOverlay.style.display = 'flex';
-    fastQuizInput.value = "câu 1 Thủ đô của Việt Nam là gì?\nA. Đà Nẵng\nB. TP Hồ Chí Minh\nC. Hà Nội.*\nD. Hải Phòng";
+    // fastQuizInput.value = "câu 1 Thủ đô của Việt Nam là gì?\nA. Đà Nẵng\nB. TP Hồ Chí Minh\nC. Hà Nội.*\nD. Hải Phòng";
     updatePreview();
 };
 
@@ -1291,39 +1440,14 @@ function loadUserExams(uid) {
         });
     }
 
+    // ========================
+    //  -DI CHUYỂN CÁC CỬA SỔ-
+    // ========================
+
+
+
     // =======================
     // TỐI ƯU GIAO DIỆN MOBILE
-    document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.querySelector('aside');
-    const sidebarToggle = document.getElementById('sidebar-toggle');
-    
-    // Tạo overlay (lớp phủ) bằng code để không cần sửa HTML nhiều
-    const overlay = document.createElement('div');
-    overlay.className = 'sidebar-overlay';
-    document.body.appendChild(overlay);
-
-    // Hàm đóng/mở
-    const toggleSidebar = () => {
-        sidebar.classList.toggle('active');
-        overlay.classList.toggle('active');
-    };
-
-    if (sidebarToggle) {
-        sidebarToggle.addEventListener('click', toggleSidebar);
-    }
-
-    // Đóng menu khi nhấn vào lớp phủ (nhấn ra ngoài menu)
-    overlay.addEventListener('click', toggleSidebar);
-
-    // Đóng menu sau khi chọn một Tab (để người dùng thấy nội dung ngay)
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-        item.addEventListener('click', () => {
-            if (window.innerWidth <= 768) {
-                toggleSidebar();
-            }
-        });
-    });
-});
+    // =======================
 
 });

@@ -612,6 +612,14 @@ textarea {
     color: var(--gray);
 }
 
+.post-content p{
+    word-wrap: break-word;      /* Cho phép ngắt từ khi quá dài */
+    word-break: break-word;     /* Đảm bảo tương thích với các trình duyệt cũ */
+    overflow-wrap: break-word;  /* Thuộc tính tiêu chuẩn hiện nay */
+    white-space: pre-wrap;      /* Quan trọng: Giữ lại các dấu xuống dòng khi người dùng gõ Enter */
+    max-width: 100%;            /* Đảm bảo không bao giờ vượt quá chiều rộng cha */
+}
+
 .post-content p {
     line-height: 1.6;
     margin-bottom: 15px;
@@ -665,9 +673,13 @@ textarea {
 .post-actions button:hover { background: #f8f9ff; color: var(--primary); }
 .btn-delete{
     background: transparent;
+    width: 32px;
+    height: 32px;
     color: var(--gray);
     border-radius: 50%;
     border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
 }
 .btn-delete:hover {
     background: #FFF5F5;
@@ -803,6 +815,18 @@ textarea {
     padding: 8px;
     border-radius: 10px;
     outline: none;
+}
+
+
+#close-chat{
+    background: transparent;
+    border: none;
+    color: var(--bg);
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+#close-chat:hover{
+    transform: scale(1.2);    
 }
 
 
@@ -1116,6 +1140,11 @@ textarea {
 /* =============================== */
 /* TỐI ƯU GIAO DIỆN CHO ĐIỆN THOẠI */
 /* =============================== */
+
+
+
+
+
 /* Nút toggle mặc định sẽ ẩn trên PC */
 .sidebar-toggle {
     display: none; 
@@ -1127,43 +1156,146 @@ textarea {
     padding: 10px;
 }
 
-/* Tối ưu cho màn hình dưới 768px (Điện thoại/Tablet) */
-@media (max-width: 768px) {
-    .sidebar-toggle {
-        display: block; /* Hiện nút trên điện thoại */
-    }
 
-    aside {
-        left: -260px; /* Đẩy sidebar ra ngoài màn hình bên trái */
-        transition: all 0.3s ease-in-out;
-        z-index: 9999;
-        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-    }
+/* =========================
+    ---PHẦN BÌNH LUẬN---  
+   =========================  */
 
-    /* Khi sidebar được kích hoạt class active */
-    aside.active {
-        left: 0;
-    }
+.comments-section {
+    margin-top: 15px;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+    display: none; /* Ẩn mặc định, nhấn nút sẽ hiện */
+    animation: fadeIn 0.3s ease;
+}
 
-    /* Điều chỉnh lại phần main content để không bị chừa khoảng trống sidebar */
-    main, .content-section {
-        margin-left: 0 !important;
-        padding: 15px;
-    }
+.comments-list {
+    max-height: 250px;
+    overflow-y: auto;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
 
-    /* Thêm một lớp phủ mờ phía sau khi mở menu (tùy chọn) */
-    .sidebar-overlay {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0,0,0,0.3);
-        z-index: 9998;
-    }
-    
-    .sidebar-overlay.active {
-        display: block;
-    }
+.comment-item {
+    position: relative;
+    display: flex;
+    gap: 10px;
+}
+
+.comment-options {
+    position: absolute;
+    right: 5px;
+    top: 5px;
+    opacity: 0; /* Mặc định ẩn */
+    transition: opacity 0.2s;
+}
+
+.comment-item:hover .comment-options {
+    opacity: 1; /* Hiện khi di chuột vào comment-item */
+}
+
+.btn-options-cmt {
+    background: none;
+    border: none;
+    color: var(--gray);
+    cursor: pointer;
+    padding: 5px;
+    font-size: 0.8rem;
+}
+
+.comment-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: 25px;
+    background: white;
+    border: 1px solid #eee;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    border-radius: 8px;
+    z-index: 10;
+}
+
+.comment-dropdown button {
+    background: none;
+    border: none;
+    color: #ff4d4d;
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    width: 100%;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.comment-dropdown button:hover {
+    background: #fff5f5;
+}
+
+
+.comment-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--blue);
+}
+
+.comment-content {
+    background: #f1f5f9;
+    padding: 10px 14px;
+    border-radius: 16px;
+    border-top-left-radius: 4px;
+    font-size: 0.9rem;
+    color: var(--text);
+    flex-grow: 1;
+    max-width: fit-content;
+}
+
+.comment-content strong {
+    display: block;
+    font-size: 0.85rem;
+    margin-bottom: 3px;
+    color: #1a202c;
+}
+
+.comment-input-area {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.comment-input-area input {
+    flex-grow: 1;
+    border: 1px solid #E2E8F0;
+    border-radius: 20px;
+    padding: 10px 15px;
+    outline: none;
+    background: #F8FAFC;
+    transition: all 0.2s;
+}
+
+.comment-input-area input:focus {
+    border-color: var(--primary);
+    background: #FFFFFF;
+}
+
+.btn-send-comment {
+    background: var(--primary);
+    color: white;
+    border: none;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.btn-send-comment:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 10px rgba(93, 95, 239, 0.3);
 }
