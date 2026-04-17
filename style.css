@@ -1112,3 +1112,58 @@ textarea {
     border: 2px dashed #4ADE80 !important;
     background: #FFFFFF !important;
 }
+
+/* =============================== */
+/* TỐI ƯU GIAO DIỆN CHO ĐIỆN THOẠI */
+/* =============================== */
+/* Nút toggle mặc định sẽ ẩn trên PC */
+.sidebar-toggle {
+    display: none; 
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    color: var(--primary);
+    cursor: pointer;
+    padding: 10px;
+}
+
+/* Tối ưu cho màn hình dưới 768px (Điện thoại/Tablet) */
+@media (max-width: 768px) {
+    .sidebar-toggle {
+        display: block; /* Hiện nút trên điện thoại */
+    }
+
+    aside {
+        left: -260px; /* Đẩy sidebar ra ngoài màn hình bên trái */
+        transition: all 0.3s ease-in-out;
+        z-index: 9999;
+        box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+    }
+
+    /* Khi sidebar được kích hoạt class active */
+    aside.active {
+        left: 0;
+    }
+
+    /* Điều chỉnh lại phần main content để không bị chừa khoảng trống sidebar */
+    main, .content-section {
+        margin-left: 0 !important;
+        padding: 15px;
+    }
+
+    /* Thêm một lớp phủ mờ phía sau khi mở menu (tùy chọn) */
+    .sidebar-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0,0,0,0.3);
+        z-index: 9998;
+    }
+    
+    .sidebar-overlay.active {
+        display: block;
+    }
+}

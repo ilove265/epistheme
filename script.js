@@ -1291,5 +1291,39 @@ function loadUserExams(uid) {
         });
     }
 
+    // =======================
+    // TỐI ƯU GIAO DIỆN MOBILE
+    document.addEventListener('DOMContentLoaded', () => {
+    const sidebar = document.querySelector('aside');
+    const sidebarToggle = document.getElementById('sidebar-toggle');
+    
+    // Tạo overlay (lớp phủ) bằng code để không cần sửa HTML nhiều
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+
+    // Hàm đóng/mở
+    const toggleSidebar = () => {
+        sidebar.classList.toggle('active');
+        overlay.classList.toggle('active');
+    };
+
+    if (sidebarToggle) {
+        sidebarToggle.addEventListener('click', toggleSidebar);
+    }
+
+    // Đóng menu khi nhấn vào lớp phủ (nhấn ra ngoài menu)
+    overlay.addEventListener('click', toggleSidebar);
+
+    // Đóng menu sau khi chọn một Tab (để người dùng thấy nội dung ngay)
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768) {
+                toggleSidebar();
+            }
+        });
+    });
+});
 
 });
