@@ -229,214 +229,8 @@ document.addEventListener('DOMContentLoaded', () => {
     loginBtn.addEventListener('click', handleLogin);
 
 
-    // --- QUẢN LÝ ĐỀ THI ---
-
-    // --- KHAI BÁO THÊM PHẦN TỬ ---
-const editorOverlay = document.getElementById('exam-editor-overlay');
-const quizOverlay = document.getElementById('quiz-player-overlay');
-const questionsList = document.getElementById('questions-list');
-const examListContainer = document.querySelector('#exams .grid-layout') || document.querySelector('.grid-layout');
-const quizContent = document.getElementById('quiz-content');
 let currentQuestions = []; // Lưu danh sách câu hỏi đang soạn
 
-window.deleteExam = async (e, examId) => {
-        e.stopPropagation(); // Ngăn việc nhấn Xóa nhưng lại nhảy vào làm bài
-        if (confirm("Bạn có chắc chắn muốn xóa đề thi này không?")) {
-            try {
-                await deleteDoc(doc(db, "exams", examId));
-                alert("Đã xóa đề thi!");
-            } catch (error) {
-                console.error("Lỗi khi xóa:", error);
-            }
-        }
-    };
-
-// 1. Mở trình soạn đề
-document.querySelector('#exams .btn-primary').onclick = () => {
-    editorOverlay.style.display = 'flex';
-    currentQuestions = [];
-    questionsList.innerHTML = '';
-    addQuestion(); // Tự động thêm câu 1
-};
-
-// 2. Thoát trình soạn
-document.getElementById('exit-editor').onclick = () => {
-    if(confirm("Bạn có chắc muốn thoát? Dữ liệu chưa lưu sẽ mất.")) {
-        editorOverlay.style.display = 'none';
-    }
-};
-
-// 3. Hàm thêm một câu hỏi trắc nghiệm mới vào giao diện
-function addQuestion() {
-    const qIndex = currentQuestions.length + 1;
-    const qDiv = document.createElement('div');
-    qDiv.className = 'question-item card';
-    qDiv.innerHTML = `
-        <h4>Câu hỏi ${qIndex}</h4>
-        <textarea placeholder="Nhập câu hỏi tại đây..." class="q-text"></textarea>
-        <div class="option-group">
-            <input type="text" placeholder="Đáp án A" class="opt-a">
-            <input type="text" placeholder="Đáp án B" class="opt-b">
-            <input type="text" placeholder="Đáp án C" class="opt-c">
-            <input type="text" placeholder="Đáp án D" class="opt-d">
-        </div>
-        <select class="correct-opt">
-            <option value="A">Đáp án đúng: A</option>
-            <option value="B">Đáp án đúng: B</option>
-            <option value="C">Đáp án đúng: C</option>
-            <option value="D">Đáp án đúng: D</option>
-        </select>
-    `;
-    questionsList.appendChild(qDiv);
-    currentQuestions.push({}); // Giữ chỗ trong mảng
-}
-document.getElementById('add-question-btn').onclick = addQuestion;
-
-// 4. Lưu đề thi vào Firestore
-document.getElementById('save-exam-btn').onclick = async () => {
-    const title = document.getElementById('editor-title').value;
-    const subject = document.getElementById('editor-subject').value;
-    const qItems = document.querySelectorAll('.question-item');
-    
-    let finalQuestions = [];
-    qItems.forEach(item => {
-        finalQuestions.push({
-            question: item.querySelector('.q-text').value,
-            options: {
-                A: item.querySelector('.opt-a').value,
-                B: item.querySelector('.opt-b').value,
-                C: item.querySelector('.opt-c').value,
-                D: item.querySelector('.opt-d').value,
-            },
-            answer: item.querySelector('.correct-opt').value
-        });
-    });
-
-    try {
-        await addDoc(collection(db, "exams"), {
-            userId: auth.currentUser.uid,
-            title,
-            subject,
-            questions: finalQuestions,
-            createdAt: new Date()
-        });
-        alert("Đã tạo đề thi thành công!");
-        editorOverlay.style.display = 'none';
-    } catch (e) { console.error(e); }
-};
-
-
-    //hàm show điểm
-    function showScore(correctCount, total) {
-        quizOverlay.style.display = 'none'; // Ẩn màn hình làm bài
-        
-        finalScoreEl.innerText = correctCount;
-        totalQuestionsScoreEl.innerText = total;
-        
-        const score10 = ((correctCount / total) * 10).toFixed(1);
-        const percentage = (correctCount / total) * 100;
-
-        if (percentage >= 80) scoreMessageEl.innerText = `Xuất sắc! Điểm của bạn: ${score10}/10 🚀`;
-        else if (percentage >= 50) scoreMessageEl.innerText = `Khá tốt! Điểm của bạn: ${score10}/10 📚`;
-        else scoreMessageEl.innerText = `Cần cố gắng thêm! Điểm của bạn: ${score10}/10 💪`;
-
-        scoreResultModal.style.display = 'block'; // Hiện Modal điểm
-    }
-
-
-// 5. Hàm Bắt đầu làm bài (Khi ấn vào thẻ đề thi)
-window.startQuiz = async (examId) => {
-        const docSnap = await getDoc(doc(db, "exams", examId));
-        if (docSnap.exists()) {
-            const exam = docSnap.data();
-            currentQuizQuestions = exam.questions; // Lưu vào biến toàn cục để chấm điểm
-            
-            // Xây dựng lại giao diện Quiz Player để nút "Nộp bài" trên cùng hoạt động
-            quizOverlay.innerHTML = `
-                <div class="quiz-player-container" style="width:100%; height:100%; display:flex; flex-direction:column; background:white;">
-                    <header class="quiz-header" style="padding: 20px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
-                        <h2 id="quiz-display-title" style="color:var(--primary)">${exam.title}</h2>
-                        <div class="quiz-controls">
-                            <button id="top-submit-btn" class="btn-primary">Nộp bài</button>
-                            <button onclick="document.getElementById('quiz-player-overlay').style.display='none'" class="btn-ghost">Thoát</button>
-                        </div>
-                    </header>
-                    <div id="quiz-content" style="flex-grow:1; overflow-y:auto; padding:40px;">
-                        </div>
-                </div>
-            `;
-            
-            const quizInnerContent = quizOverlay.querySelector('#quiz-content');
-
-            exam.questions.forEach((q, index) => {
-                const qCard = document.createElement('div');
-                qCard.className = 'card quiz-q-card';
-                qCard.style.marginBottom = '20px';
-                qCard.style.padding = '25px';
-                qCard.innerHTML = `
-                    <p style="font-size:1.1rem; margin-bottom:15px;"><strong>Câu ${index + 1}:</strong> ${q.question}</p>
-                    <div class="quiz-options" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
-                        ${['A','B','C','D'].map(opt => `
-                            <label style="display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #eee; border-radius:10px; cursor:pointer;">
-                                <input type="radio" name="q${index}" value="${opt}">
-                                <span><strong>${opt}.</strong> ${q.options[opt]}</span>
-                            </label>
-                        `).join('')}
-                    </div>
-                `;
-                quizInnerContent.appendChild(qCard);
-            });
-
-            quizOverlay.style.display = 'flex';
-
-            // Xử lý nộp bài từ nút phía trên
-            document.getElementById('top-submit-btn').onclick = () => {
-                // Ở đây bạn có thể hiện Modal "Xác nhận nộp bài" nếu muốn, hoặc chấm luôn:
-                let correctCount = 0;
-                currentQuizQuestions.forEach((q, i) => {
-                    const selected = quizOverlay.querySelector(`input[name="q${i}"]:checked`)?.value;
-                    if (selected === q.answer) correctCount++;
-                });
-                showScore(correctCount, currentQuizQuestions.length);
-            };
-        }
-    };
-
-    if (closeScoreBtn) closeScoreBtn.onclick = () => scoreResultModal.style.display = 'none';
-
-// 6. Sửa lại hàm hiển thị danh sách đề thi để có nút "Làm bài"
-function loadUserExams(uid) {
-        if (!examListContainer) return;
-        const q = query(collection(db, "exams"), where("userId", "==", uid));
-        
-        onSnapshot(q, (snapshot) => {
-            examListContainer.innerHTML = '';
-            snapshot.forEach((docSnap) => {
-                const exam = docSnap.data();
-                const examId = docSnap.id;
-                
-                const card = document.createElement('div');
-                card.className = 'card exam-card';
-                card.onclick = () => window.startQuiz(examId);
-
-                card.innerHTML = `
-                    <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
-                        <div class="exam-tag">${exam.subject}</div>
-                        <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                    <h3 style="margin-top:10px">${exam.title}</h3>
-                    <p style="font-size:0.85rem; color:var(--gray)"><i class="fas fa-list-ul"></i> ${exam.questions?.length || 0} câu hỏi</p>
-                    <div style="margin-top:15px; display:flex; justify-content:space-between; align-items:center;">
-                         <span style="font-size:0.8rem; color:#cbd5e0">${new Date(exam.createdAt?.toDate()).toLocaleDateString()}</span>
-                         <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Làm bài</button>
-                    </div>
-                `;
-                examListContainer.appendChild(card);
-            });
-        });
-    }
 
 // --- CỘNG ĐỒNG CHIA SẺ TÀI LIỆU ---
 const postBtn = document.querySelector('.post-input-container .btn-primary');
@@ -574,8 +368,16 @@ function loadCommunityFeed() {
                     `;
                 }
 
+                const isOwner = auth.currentUser && post.userId === auth.currentUser.uid;
+                const deleteBtnHTML = isOwner ? `
+                    <button class="btn-delete-post" onclick="deletePost('${postId}')" title="Xóa bài đăng">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                ` : '';
+                
                 const postHTML = `
-                    <div class="post-card card">
+                    <div class="post-card card" style="position: relative;">
+                        ${deleteBtnHTML}
                         <div class="post-header">
                             <img src="${post.userAvatar}" class="avatar-small">
                             <div class="post-info"><strong>${post.userName}</strong><span>Mới đăng</span></div>
@@ -588,6 +390,7 @@ function loadCommunityFeed() {
                         </div>
                     </div>
                 `;
+                
                 feedContainer.insertAdjacentHTML('beforeend', postHTML);
             });
         });
@@ -600,6 +403,21 @@ window.handleLike = async (postId, isLiked) => {
     await updateDoc(postRef, {
         likes: isLiked ? arrayRemove(auth.currentUser.uid) : arrayUnion(auth.currentUser.uid)
     });
+};
+
+//xóa bài đăng
+window.deletePost = async (postId) => {
+    if (!auth.currentUser) return;
+    
+    if (confirm("Bạn có chắc chắn muốn xóa bài đăng này không?")) {
+        try {
+            // Lệnh xóa từ Firestore (onSnapshot sẽ tự động cập nhật lại bảng tin)
+            await deleteDoc(doc(db, "posts", postId));
+        } catch (error) {
+            console.error("Lỗi khi xóa bài:", error);
+            alert("Đã xảy ra lỗi khi xóa bài đăng.");
+        }
+    }
 };
 
 // ======================
@@ -968,6 +786,510 @@ document.getElementById('btn-prev-card').onclick = () => {
 // ===================================
 // THUẬT TOÁN BÌNH LUẬN & XÓA BÀI ĐĂNG
 // ===================================
+
+
+
+// ===============================
+// CẤU TRÚC BIẾN FILE THÀNH ĐỀ THI
+// ===============================
+
+pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.worker.min.js';
+
+async function extractTextFromPDF(file) {
+    const reader = new FileReader();
+    return new Promise((resolve) => {
+        reader.onload = async function() {
+            const typedarray = new Uint8Array(this.result);
+            const pdf = await pdfjsLib.getDocument(typedarray).promise;
+            let fullText = "";
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const content = await page.getTextContent();
+                fullText += content.items.map(item => item.str).join(" ");
+            }
+            resolve(fullText);
+        };
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+async function extractTextFromDOCX(file) {
+    return new Promise((resolve, reject) => {
+        // Kiểm tra xem thư viện đã load thành công chưa
+        const mammothObj = window.mammoth || (typeof mammoth !== "undefined" ? mammoth : null);
+        
+        if (!mammothObj) {
+            alert("Thư viện đọc file Word chưa được tải! Vui lòng nhấn Ctrl + F5 để tải lại trang.");
+            reject(new Error("Mammoth library not found"));
+            return;
+        }
+
+        const reader = new FileReader();
+        
+        reader.onload = function(event) {
+            const arrayBuffer = event.target.result;
+            
+            mammothObj.extractRawText({ arrayBuffer: arrayBuffer })
+                .then(function(result) {
+                    if (!result.value.trim()) {
+                        reject(new Error("File Word này không có chữ hoặc là file ảnh chèn vào Word."));
+                    } else {
+                        resolve(result.value); 
+                    }
+                })
+                .catch(function(err) {
+                    reject(err);
+                });
+        };
+        
+        reader.onerror = function() {
+            reject(new Error("Lỗi khi đọc file từ hệ thống."));
+        };
+        
+        reader.readAsArrayBuffer(file);
+    });
+}
+
+
+const editorOverlay = document.getElementById('exam-editor-overlay');
+const quizOverlay = document.getElementById('quiz-player-overlay');
+const examListContainer = document.querySelector('#exams .grid-layout') || document.querySelector('.grid-layout');
+const fastQuizInput = document.getElementById('fast-quiz-input');
+const liveQuizPreview = document.getElementById('live-quiz-preview');
+
+// 1. Mở và Thoát trình soạn
+document.querySelector('#exams .btn-primary').onclick = () => {
+    editorOverlay.style.display = 'flex';
+    fastQuizInput.value = "câu 1 Thủ đô của Việt Nam là gì?\nA. Đà Nẵng\nB. TP Hồ Chí Minh\nC. Hà Nội.*\nD. Hải Phòng";
+    updatePreview();
+};
+
+document.getElementById('exit-editor').onclick = () => {
+    if(confirm("Bạn có chắc muốn thoát? Dữ liệu chưa lưu sẽ mất.")) {
+        editorOverlay.style.display = 'none';
+    }
+};
+
+// 2. Thuật toán Parse Text thành Object (Từ quiz.js cũ)
+function parseQuizText(text) {
+    const lines = text.split('\n').map(l => l.replace(/\r/g, '').trim());
+    const questions = [];
+    let currentQuestion = null;
+    const optionRegex = /^\s*([A-Za-z][\.\)])/; 
+
+    for (const line of lines) {
+        if (!line) continue;
+
+        if (/^câu\s+\d+/i.test(line)) {
+            currentQuestion = {
+                questionText: line.replace(/^câu\s+\d+/i, '').trim(),
+                options: [],
+            };
+            questions.push(currentQuestion);
+            continue;
+        }
+
+        if (currentQuestion && optionRegex.test(line)) {
+            let optionLine = line;
+            let isCorrect = false;
+            if (optionLine.endsWith('*')) {
+                isCorrect = true;
+                optionLine = optionLine.slice(0, -1).trim();
+            }
+
+            const match = optionLine.match(optionRegex);
+            const prefix = match ? match[1].replace(/[\.\)]$/, '') : '';
+            const content = optionLine.replace(optionRegex, '').trim();
+
+            currentQuestion.options.push({ content, prefix, isCorrect });
+            continue;
+        }
+
+        if (currentQuestion && currentQuestion.options.length === 0) {
+            currentQuestion.questionText += ' ' + line;
+        }
+    }
+    return questions.filter(q => q.options.length > 0);
+}
+
+// 3. Render Live Preview
+function updatePreview() {
+    const text = fastQuizInput.value;
+    const questionsData = parseQuizText(text);
+    liveQuizPreview.innerHTML = '';
+
+    if (!questionsData || questionsData.length === 0) {
+        liveQuizPreview.innerHTML = '<p style="text-align:center; color:var(--gray); margin-top:20px;">Bắt đầu gõ để xem trước...</p>';
+        return;
+    }
+
+    questionsData.forEach((q, index) => {
+        const card = document.createElement('div');
+        card.className = 'preview-q-card';
+        
+        let optionsHtml = q.options.map((opt, i) => `
+            <div class="preview-opt ${opt.isCorrect ? 'is-correct' : ''}" onclick="window.selectAnswer(${index + 1}, ${i})">
+                <span class="opt-prefix">${opt.prefix.toUpperCase()}</span>
+                ${opt.content}
+            </div>
+        `).join('');
+
+        card.innerHTML = `<h4>Câu ${index + 1}: ${q.questionText}</h4>${optionsHtml}`;
+        liveQuizPreview.appendChild(card);
+    });
+}
+
+// 4. Click Preview để chọn đáp án đúng
+window.selectAnswer = function(questionNumber, selectedIndex) {
+    const text = fastQuizInput.value.split('\n');
+    let inQuestion = false;
+    let optionCount = 0;
+    const optionRegex = /^\s*([A-Za-z][\.\)])/;
+
+    for (let i = 0; i < text.length; i++) {
+        const raw = text[i];
+        const trimmed = raw.trim();
+
+        if (/^câu\s+\d+/i.test(trimmed) && parseInt(trimmed.match(/\d+/)[0]) === questionNumber) {
+            inQuestion = true;
+            optionCount = 0;
+            continue;
+        }
+        if (inQuestion && /^câu\s+\d+/i.test(trimmed)) inQuestion = false;
+        if (!inQuestion) continue;
+
+        if (optionRegex.test(trimmed)) {
+            const idx = optionCount;
+            optionCount++;
+            
+            // Xóa * cũ
+            if (trimmed.endsWith('*')) text[i] = raw.replace(/\*+\s*$/, '').replace(/\s+$/, '');
+            // Thêm * mới
+            if (idx === selectedIndex) text[i] = text[i] + '*';
+        }
+    }
+    fastQuizInput.value = text.join('\n');
+    updatePreview();
+};
+
+// 5. Tính năng tự động gợi ý A, B, C, D khi gõ
+fastQuizInput.addEventListener('keydown', (e) => {
+    if (e.key !== 'Enter' || e.shiftKey) return;
+    const start = fastQuizInput.selectionStart;
+    const text = fastQuizInput.value;
+    const beforeCursor = text.substring(0, start);
+    const lastNewline = beforeCursor.lastIndexOf('\n');
+    const line = beforeCursor.substring(lastNewline + 1).trim();
+
+    setTimeout(() => {
+        let newText = fastQuizInput.value;
+        const currentEnd = fastQuizInput.selectionEnd;
+
+        if (/^A\.\s*$/i.test(line)) {
+            newText = newText.substring(0, currentEnd) + 'B.\nC.\nD.' + newText.substring(currentEnd);
+            fastQuizInput.value = newText;
+            fastQuizInput.selectionStart = fastQuizInput.selectionEnd = currentEnd + 2;
+            updatePreview();
+        }
+    }, 0);
+});
+
+fastQuizInput.addEventListener('input', updatePreview);
+
+// 6. Xử lý Upload PDF/Word -> Đổ thẳng văn bản vào Textarea
+const fileInput = document.getElementById('upload-exam-file');
+if (fileInput) {
+    fileInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        try {
+            let rawText = "";
+            const fileName = file.name.toLowerCase();
+
+            // Hiển thị trạng thái đang xử lý
+            const originalPlaceholder = fastQuizInput.placeholder;
+            fastQuizInput.value = "Đang đọc dữ liệu từ file, vui lòng đợi...";
+
+            if (fileName.endsWith('.pdf')) {
+                rawText = await extractTextFromPDF(file);
+            } else if (fileName.endsWith('.docx')) {
+                rawText = await extractTextFromDOCX(file);
+            }
+
+            // Dùng chính hàm parse chuẩn của hệ thống để đọc text thô
+            const processedQuestions = parseQuizText(rawText);
+            
+            if (processedQuestions.length === 0) {
+                alert("Không nhận diện được câu hỏi. Đảm bảo file có định dạng: Câu 1: ... A. ... B. ...");
+                fastQuizInput.value = "";
+                fastQuizInput.placeholder = originalPlaceholder;
+                return;
+            }
+
+            // Chuyển mảng Object ngược lại thành String định dạng chuẩn để đổ vào Textarea
+            let formattedText = "";
+            processedQuestions.forEach((q, idx) => {
+                // q.questionText thay vì q.question
+                formattedText += `câu ${idx + 1} ${q.questionText}\n`;
+                
+                q.options.forEach((opt) => {
+                    // Lấy ký tự A, B, C... và nội dung, thêm * nếu là đáp án đúng
+                    let star = opt.isCorrect ? "*" : "";
+                    formattedText += `${opt.prefix}. ${opt.content}${star}\n`;
+                });
+                formattedText += "\n";
+            });
+
+            // Cập nhật giao diện
+            fastQuizInput.value = formattedText.trim();
+            updatePreview();
+            alert(`Thành công! đã nhận diện ${processedQuestions.length} câu hỏi.`);
+
+        } catch (error) {
+            console.error("Lỗi xử lý file:", error);
+            alert("Lỗi khi đọc file: " + error.message);
+            fastQuizInput.value = "";
+        }
+    });
+}
+
+// 7. Lưu Đề Thi vào Firestore
+document.getElementById('save-exam-btn').onclick = async () => {
+    const title = document.getElementById('editor-title').value.trim();
+    const subject = document.getElementById('editor-subject').value;
+    const text = fastQuizInput.value;
+
+    if(!title) return alert("Vui lòng nhập tên đề thi!");
+
+    const parsedQuestions = parseQuizText(text);
+    let finalQuestions = [];
+
+    // Chuyển đổi định dạng từ parseQuizText sang định dạng của Firebase (options: {A, B, C, D})
+    parsedQuestions.forEach(q => {
+        if (q.options.length >= 2) {
+            let answer = "A"; 
+            let optionsObj = { A: "", B: "", C: "", D: "" };
+            
+            q.options.forEach((opt, idx) => {
+                let letter = String.fromCharCode(65 + idx); // Sinh ra A, B, C, D
+                if (letter <= 'D') {
+                    optionsObj[letter] = opt.content;
+                    if (opt.isCorrect) answer = letter;
+                }
+            });
+
+            finalQuestions.push({
+                question: q.questionText,
+                options: optionsObj,
+                answer: answer
+            });
+        }
+    });
+
+    if (finalQuestions.length === 0) {
+        return alert("Chưa có câu hỏi hợp lệ nào. Hãy chắc chắn có đáp án (A. B.) và đáp án đúng (*).");
+    }
+
+    const btn = document.getElementById('save-exam-btn');
+    btn.innerText = "Đang lưu...";
+
+    try {
+        await addDoc(collection(db, "exams"), {
+            userId: auth.currentUser.uid,
+            title,
+            subject,
+            questions: finalQuestions,
+            createdAt: new Date()
+        });
+        alert("Đã lưu đề thi thành công!");
+        editorOverlay.style.display = 'none';
+        document.getElementById('editor-title').value = '';
+    } catch (e) { 
+        console.error(e); 
+        alert("Lỗi khi lưu đề thi!");
+    } finally {
+        btn.innerText = "Hoàn thành & Lưu";
+    }
+};
+
+let userSelectedAnswers = [];  // THÊM DÒNG NÀY
+
+function renderReviewMode() {
+    const quizContent = document.getElementById('quiz-content');
+    const questionCards = quizContent.querySelectorAll('.quiz-q-card');
+
+    currentQuizQuestions.forEach((q, index) => {
+        const card = questionCards[index];
+        const userAnswer = userSelectedAnswers[index];
+        const correctAnswer = q.answer; // Ví dụ: "A", "B"...
+
+        const optionsLabels = card.querySelectorAll('.quiz-options label');
+        
+        optionsLabels.forEach(label => {
+            const input = label.querySelector('input');
+            const val = input.value;
+            
+            label.classList.add('quiz-option-review'); // Khóa click
+            input.disabled = true;
+
+            // Logic tô màu
+            if (val === userAnswer) {
+                if (val === correctAnswer) {
+                    label.classList.add('opt-correct'); // Chọn đúng -> Xanh
+                } else {
+                    label.classList.add('opt-wrong'); // Chọn sai -> Đỏ
+                }
+            } else if (val === correctAnswer) {
+                label.classList.add('opt-should-be'); // Không chọn nhưng là đáp án đúng -> Viền nét đứt
+            }
+        });
+    });
+
+    // Đổi nút "Nộp bài" thành "Thoát xem lại" để tránh nhầm lẫn
+    const topBtn = document.getElementById('top-submit-btn');
+    topBtn.innerText = "Thoát xem lại";
+    topBtn.onclick = () => {
+        quizOverlay.style.display = 'none';
+        topBtn.innerText = "Nộp bài"; // Reset lại cho lần sau
+    };
+}
+
+window.deleteExam = async (e, examId) => {
+    // Logic Xóa đề thi của bạn được giữ nguyên
+    e.stopPropagation();
+    if (confirm("Bạn có chắc chắn muốn xóa đề thi này không?")) {
+        try {
+            await deleteDoc(doc(db, "exams", examId));
+        } catch (error) {
+            console.error("Lỗi khi xóa:", error);
+        }
+    }
+};
+
+// phần cũ 16/4/2026
+
+    //hàm show điểm
+    function showScore(correctCount, total) {
+        quizOverlay.style.display = 'none'; // Ẩn màn hình làm bài
+        
+        finalScoreEl.innerText = correctCount;
+        totalQuestionsScoreEl.innerText = total;
+        
+        const score10 = ((correctCount / total) * 10).toFixed(1);
+        const percentage = (correctCount / total) * 100;
+
+        if (percentage >= 80) scoreMessageEl.innerText = `Xuất sắc! Điểm của bạn: ${score10}/10 🚀`;
+        else if (percentage >= 50) scoreMessageEl.innerText = `Khá tốt! Điểm của bạn: ${score10}/10 📚`;
+        else scoreMessageEl.innerText = `Cần cố gắng thêm! Điểm của bạn: ${score10}/10 💪`;
+
+        scoreResultModal.style.display = 'block'; // Hiện Modal điểm
+    }
+
+
+
+window.startQuiz = async (examId) => {
+        const docSnap = await getDoc(doc(db, "exams", examId));
+        if (docSnap.exists()) {
+            const exam = docSnap.data();
+            currentQuizQuestions = exam.questions; // Lưu vào biến toàn cục để chấm điểm
+            
+            // Xây dựng lại giao diện Quiz Player để nút "Nộp bài" trên cùng hoạt động
+            quizOverlay.innerHTML = `
+                <div class="quiz-player-container" style="width:100%; height:100%; display:flex; flex-direction:column; background:white;">
+                    <header class="quiz-header" style="padding: 20px 40px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee;">
+                        <h2 id="quiz-display-title" style="color:var(--primary)">${exam.title}</h2>
+                        <div class="quiz-controls">
+                            <button id="top-submit-btn" class="btn-primary">Nộp bài</button>
+                            <button onclick="document.getElementById('quiz-player-overlay').style.display='none'" class="btn-ghost">Thoát</button>
+                        </div>
+                    </header>
+                    <div id="quiz-content" style="flex-grow:1; overflow-y:auto; padding:40px;">
+                        </div>
+                </div>
+            `;
+            
+            const quizInnerContent = quizOverlay.querySelector('#quiz-content');
+
+            exam.questions.forEach((q, index) => {
+                const qCard = document.createElement('div');
+                qCard.className = 'card quiz-q-card';
+                qCard.style.marginBottom = '20px';
+                qCard.style.padding = '25px';
+                qCard.innerHTML = `
+                    <p style="font-size:1.1rem; margin-bottom:15px;"><strong>Câu ${index + 1}:</strong> ${q.question}</p>
+                    <div class="quiz-options" style="display:grid; grid-template-columns:1fr 1fr; gap:15px;">
+                        ${['A','B','C','D'].map(opt => `
+                            <label style="display:flex; align-items:center; gap:10px; padding:12px; border:1px solid #eee; border-radius:10px; cursor:pointer;">
+                                <input type="radio" name="q${index}" value="${opt}">
+                                <span><strong>${opt}.</strong> ${q.options[opt]}</span>
+                            </label>
+                        `).join('')}
+                    </div>
+                `;
+                quizInnerContent.appendChild(qCard);
+            });
+
+            quizOverlay.style.display = 'flex';
+
+            // Xử lý nộp bài từ nút phía trên
+            document.getElementById('top-submit-btn').onclick = () => {
+                // Ở đây bạn có thể hiện Modal "Xác nhận nộp bài" nếu muốn, hoặc chấm luôn:
+                let correctCount = 0;
+                userSelectedAnswers = [];
+                currentQuizQuestions.forEach((q, i) => {
+                    const selected = quizOverlay.querySelector(`input[name="q${i}"]:checked`)?.value;
+                    if (selected === q.answer) correctCount++;
+                });
+                showScore(correctCount, currentQuizQuestions.length);
+            };
+        }
+    };
+
+    if (closeScoreBtn) closeScoreBtn.onclick = () => scoreResultModal.style.display = 'none';
+
+    const reviewBtn = document.getElementById('review-btn');
+    if (reviewBtn) {
+        reviewBtn.onclick = () => {
+            scoreResultModal.style.display = 'none'; // Ẩn bảng điểm
+            document.getElementById('quiz-player-overlay').style.display = 'flex'; // Hiện lại bài làm
+            renderReviewMode(); // Kích hoạt tô màu đúng sai
+        };
+    }
+
+
+function loadUserExams(uid) {
+        if (!examListContainer) return;
+        const q = query(collection(db, "exams"), where("userId", "==", uid));
+        
+        onSnapshot(q, (snapshot) => {
+            examListContainer.innerHTML = '';
+            snapshot.forEach((docSnap) => {
+                const exam = docSnap.data();
+                const examId = docSnap.id;
+                
+                const card = document.createElement('div');
+                card.className = 'card exam-card';
+                card.onclick = () => window.startQuiz(examId);
+
+                card.innerHTML = `
+                    <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
+                        <div class="exam-tag">${exam.subject}</div>
+                        <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <h3 style="margin-top:10px">${exam.title}</h3>
+                    <p style="font-size:0.85rem; color:var(--gray)"><i class="fas fa-list-ul"></i> ${exam.questions?.length || 0} câu hỏi</p>
+                    <div style="margin-top:15px; display:flex; justify-content:space-between; align-items:center;">
+                         <span style="font-size:0.8rem; color:#cbd5e0">${new Date(exam.createdAt?.toDate()).toLocaleDateString()}</span>
+                         <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Làm bài</button>
+                    </div>
+                `;
+                examListContainer.appendChild(card);
+            });
+        });
+    }
 
 
 });

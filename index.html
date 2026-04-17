@@ -71,36 +71,10 @@
         </div>
         <div class="grid-layout">
             <div class="card exam-card">
-                <div class="exam-tag">Toán Học</div>
-                <h3>Đề thi thử THPT Quốc Gia 2026</h3>
-                <p>Số câu: 50 | Thời gian: 90 phút</p>
+                <h3>Đăng nhập để bắt đầu tạo và làm bài thi </h3>
             </div>
         </div>
     </section>
-
-    
-
-<div id="exam-modal" class="modal">
-    <div class="modal-content" style="height: auto; padding: 20px;">
-        <h3>Tạo đề thi mới</h3>
-        <input type="text" id="exam-title" placeholder="Tên đề thi...">
-        <select id="exam-subject">
-            <option value="Toán">Toán Học</option>
-            <option value="Lý">Vật Lý</option>
-            <option value="Anh">Tiếng Anh</option>
-        </select>
-        <div style="margin: 15px 0;">
-            <button class="btn-ghost" id="btn-manual-input">Tự soạn nội dung</button>
-            <button class="btn-ghost" id="btn-upload-file">Upload file (.pdf, .docx)</button>
-        </div>
-        <textarea id="exam-content" placeholder="Nhập nội dung đề thi tại đây..." style="display:none; height: 150px;"></textarea>
-        <input type="file" id="exam-file-input" style="display:none;">
-        <div style="display:flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-            <button id="cancel-exam" class="btn-ghost">Hủy</button>
-            <button id="save-exam" class="btn-primary">Lưu đề thi</button>
-        </div>
-    </div>
-</div>
 
 
 
@@ -262,24 +236,37 @@
             <select id="editor-subject">
                 <option value="Toán">Toán Học</option>
                 <option value="Lý">Vật Lý</option>
-                <option value="Hóa">Hóa Học</option>
+                <option value="Hóa">Hóa học</option>
                 <option value="Anh">Tiếng Anh</option>
+                <option value="Sử">Lịch sử</option>
+
             </select>
             <hr>
-            <div class="upload-zone" id="file-upload-zone">
-                <i class="fas fa-cloud-upload-alt"></i>
-                <p>Kéo thả file đề hoặc nhấn để chọn</p>
-                <input type="file" id="editor-file" hidden>
-            </div>
+            <input type="file" id="upload-exam-file" accept=".pdf, .docx" style="display: none;">
+            <button class="btn-ghost" onclick="document.getElementById('upload-exam-file').click()">
+                <i class="fas fa-file-upload"></i> Tải file PDF / Word lên
+            </button>
         </div>
 
-        <div class="editor-main card">
-            <h3>Danh sách câu hỏi</h3>
-            <div id="questions-list">
-                </div>
-            <button id="add-question-btn" class="btn-ghost"><i class="fas fa-plus"></i> Thêm câu hỏi trắc nghiệm</button>
+        <div class="editor-main" style="background: transparent; box-shadow: none; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; overflow: hidden; height: 100%;">
+    
+    <div class="card editor-text-col" style="display: flex; flex-direction: column; overflow: hidden; margin: 0; height: 100%;">
+        <h3 style="margin-top: 0;"><i class="fas fa-keyboard"></i> Soạn thảo nhanh</h3>
+        <textarea id="fast-quiz-input" style="flex-grow: 1; resize: none; padding: 15px; border: 1px solid #E2E8F0; border-radius: 12px; font-family: monospace; font-size: 0.95rem; line-height: 1.6; outline: none; background: #F8FAFC;" placeholder="câu 1 Thủ đô của Việt Nam là gì?&#10;A. Đà Nẵng&#10;B. TP Hồ Chí Minh&#10;C. Hà Nội.*&#10;D. Hải Phòng"></textarea>
+        
+        <div class="format-guide" style="margin-top: 15px;margin-bottom: 15px; background: #F0F2FF; padding: 12px 15px; border-radius: 12px; font-size: 0.85rem; color: var(--primary); border-left: 4px solid var(--primary);">
+            <strong><i class="fas fa-lightbulb"></i> Mẹo:</strong> Gõ <code>câu 1</code>, xuống dòng gõ <code>A.</code> rồi nhấn Enter, AI sẽ tự điền B, C, D. Thêm <code>*</code> vào cuối đáp án đúng. Click vào đáp án ở cột bên cạnh để chọn nhanh!
         </div>
     </div>
+
+    <div class="card editor-preview-col" style="display: flex; flex-direction: column; overflow: hidden; margin: 0; height: 100%; background: #F8FAFC; border: 1px dashed #CBD5E0;">
+        <h3 style="margin-top: 0; color: var(--primary);"><i class="fas fa-eye"></i> Xem trước trực tiếp</h3>
+        <div id="live-quiz-preview" style="flex-grow: 1; overflow-y: auto; padding-right: 5px;">
+            </div>
+    </div>
+</div>
+    </div>
+
 </section>
 
 <section id="quiz-player-overlay" class="fullscreen-overlay">
@@ -312,10 +299,13 @@
             <span id="final-score">0</span>/<span id="total-questions-score">0</span>
         </div>
         <p id="score-message" style="color: var(--gray); margin-bottom: 20px;"></p>
-        <button id="close-score-btn" class="btn-primary" style="width: 100%;">Trở về danh sách đề</button>
+        <button id="review-btn" class="btn-primary" style="background: #6366F1;">Xem lại bài làm</button>
+        <button id="close-score-btn" class="btn-primary" style="width: 100%;">Đóng</button>
     </div>
 </div>
 
     <script type="module" src="./script.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.4.120/pdf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mammoth@1.6.0/mammoth.browser.min.js"></script>
 </body>
 </html>
