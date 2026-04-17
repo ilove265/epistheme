@@ -63,6 +63,7 @@
 </div>
 
 <main>
+
     <section id="exams" class="content-section active">
         <div class="section-header">
             <h2>Kho Đề Thi</h2>
@@ -101,18 +102,123 @@
     </div>
 </div>
 
+
+
     <section id="flashcards" class="content-section">
-        <h2>Học Tiếng Anh</h2>
-        <div class="flashcard-container">
-            <div class="flashcard" id="flashcard">
-                <div class="flashcard-inner">
-                    <div class="flashcard-front">Resilience</div>
-                    <div class="flashcard-back">Sự kiên cường, khả năng phục hồi nhanh chóng sau khó khăn.</div>
+    <div class="section-header">
+        <h1><i class="fas fa-clone"></i> Flashcards</h1>
+        <p>Tạo và ôn tập các bộ thẻ ghi nhớ của riêng bạn.</p>
+    </div>
+
+    <div class="flashcard-layout">
+        <div class="fc-create-zone card">
+            <h3>Tạo bộ Flashcard mới</h3>
+            <input type="text" id="fc-set-title" placeholder="Tên bộ thẻ (VD: Từ vựng IELTS Unit 1)" class="form-control">
+            
+            <div id="fc-inputs-container">
+                <div class="fc-input-row">
+                    <input type="text" placeholder="Thuật ngữ (Mặt trước)" class="form-control fc-front">
+                    <input type="text" placeholder="Định nghĩa (Mặt sau)" class="form-control fc-back">
                 </div>
             </div>
-            <p class="hint">Click vào thẻ để xem nghĩa</p>
+
+            <div style="display: flex; gap: 10px; margin-top: 15px;">
+                <button id="fc-add-row-btn" class="btn-ghost" style="flex: 1;"><i class="fas fa-plus"></i> Thêm thẻ</button>
+                <button id="fc-save-set-btn" class="btn-primary" style="flex: 1;">Lưu bộ thẻ</button>
+            </div>
         </div>
-    </section>
+
+        <div class="fc-view-zone">
+            <div id="fc-sets-list-container">
+                <h3>Các bộ thẻ của bạn</h3>
+                <div id="fc-saved-sets" class="fc-grid">
+                    </div>
+            </div>
+
+            <div id="fc-study-mode" class="card" style="display: none; text-align: center;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 id="study-title" style="margin: 0;">Đang học...</h3>
+                    <button id="fc-close-study" class="btn-ghost" style="color: red;">Đóng <i class="fas fa-times"></i></button>
+                </div>
+
+                <div class="study-card" onclick="this.classList.toggle('flipped')">
+                    <div class="study-card-inner">
+                        <div class="study-card-front" id="study-front">Mặt trước</div>
+                        <div class="study-card-back" id="study-back">Mặt sau</div>
+                    </div>
+                </div>
+
+                <div class="study-controls" style="margin-top: 20px; display: flex; justify-content: center; gap: 15px; align-items: center;">
+                    <button id="btn-prev-card" class="btn-primary"><i class="fas fa-arrow-left"></i></button>
+                    <span id="study-progress" style="font-weight: bold; color: var(--gray);">1 / 10</span>
+                    <button id="btn-next-card" class="btn-primary"><i class="fas fa-arrow-right"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<section id="scheduler" class="content-section">
+    <div class="section-header">
+        <h1><i class="fas fa-calendar-alt"></i> AI Schedule Finder</h1>
+    </div>
+
+    <div class="schedule-container">
+        <div class="schedule-controls card">
+            <h3>Thêm lịch bận</h3>
+            <div class="input-group">
+                <label>Lịch của:</label>
+                <select id="input-target" class="form-control">
+                    <option value="A">Bạn</option>
+                    <option value="B">Đối tác</option>
+                </select>
+            </div>
+            
+            <input type="text" id="input-task-name" placeholder="Tên việc bận" class="form-control" style="width: 90%;">
+            
+            <div class="input-row">
+                <select id="input-day" class="form-control">
+                    <option value="2">Thứ 2</option><option value="3">Thứ 3</option>
+                    <option value="4">Thứ 4</option><option value="5">Thứ 5</option>
+                    <option value="6">Thứ 6</option><option value="7">Thứ 7</option>
+                    <option value="0">Chủ Nhật</option>
+                </select>
+            </div>
+
+            <div class="input-row">
+                <input type="time" id="input-start" class="form-control" value="08:00">
+                <span>-</span>
+                <input type="time" id="input-end" class="form-control" value="10:00">
+            </div>
+
+            <button id="add-busy-btn" class="btn-primary">Thêm vào lịch</button>
+            <hr>
+            <button id="find-common-time-btn" class="btn-primary" style="background: #000; width: 100%;">
+                <i class="fas fa-magic"></i> AI Sắp xếp lịch trống chung
+            </button>
+            
+            <div id="ai-result-box" class="card" style="display:none; margin-top: 15px; background: #f1f5f9; border: 1px dashed #000;">
+                <small>Kết quả AI:</small>
+                <div id="ai-suggestion-text" style="font-size: 0.85rem; line-height: 1.4;"></div>
+            </div>
+        </div>
+
+        <div class="schedule-display">
+            <div class="board-wrapper">
+                <h3><i class="fas fa-user"></i> Lịch của bạn</h3>
+                <div class="schedule-board" id="board-A">
+                    </div>
+            </div>
+
+            <div class="board-wrapper" style="margin-top: 30px;">
+                <h3><i class="fas fa-user-friends"></i> Lịch của đối tác</h3>
+                <div class="schedule-board" id="board-B">
+                    </div>
+            </div>
+        </div>
+    </div>
+</section>
+
 
     <section id="social" class="content-section">
         <h2>Bảng tin cộng đồng</h2>
@@ -185,8 +291,30 @@
     <div class="quiz-container" id="quiz-content">
         </div>
 </section>
-
     </main>
+
+    
+<div id="confirm-submit-modal" class="modal">
+    <div class="modal-content" style="height: auto; max-width: 400px; padding: 20px; text-align: center;">
+        <h3 style="margin-top: 0;">Xác nhận nộp bài</h3>
+        <p>Bạn có chắc chắn muốn nộp bài không? Thời gian vẫn còn!</p>
+        <div style="display: flex; justify-content: space-between; margin-top: 20px;">
+            <button id="cancel-submit-btn" class="btn-ghost">Hủy</button>
+            <button id="confirm-submit-btn" class="btn-primary">Nộp bài ngay</button>
+        </div>
+    </div>
+</div>
+
+<div id="score-result-modal" class="modal">
+    <div class="modal-content" style="height: auto; max-width: 500px; padding: 30px; text-align: center;">
+        <h2 style="font-size: 2rem; color: var(--primary); margin-bottom: 10px;">Kết Quả Bài Làm</h2>
+        <div style="font-size: 4rem; font-weight: bold; margin: 20px 0;">
+            <span id="final-score">0</span>/<span id="total-questions-score">0</span>
+        </div>
+        <p id="score-message" style="color: var(--gray); margin-bottom: 20px;"></p>
+        <button id="close-score-btn" class="btn-primary" style="width: 100%;">Trở về danh sách đề</button>
+    </div>
+</div>
 
     <script type="module" src="./script.js"></script>
 </body>

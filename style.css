@@ -146,41 +146,391 @@ main {
     border: 2px solid var(--blue);
 }
 
+/* phan moi them */
+.flashcard-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* Chia 2 cột đều nhau */
+    gap: 30px;
+    align-items: start;
+}
+
+.fc-create-zone {
+    background: #FFFFFF;
+    border-radius: 16px;
+    border: 1px solid #E2E8F0;
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+}
+
+.fc-input-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+    animation: fadeIn 0.3s ease;
+}
+
+.fc-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 15px;
+    margin-top: 15px;
+}
+
+.set-card {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 15px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.set-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(93, 95, 239, 0.15);
+    transform: translateY(-2px);
+}
+
+/* ai viet */
+.fc-create-zone {
+    max-height: 85vh;
+    overflow-y: auto;
+}
+
+.fc-input-row {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 15px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.fc-input-row:hover {
+    border-color: var(--primary);
+    background: #FFFFFF;
+}
+
+
+.fc-input-row input {
+    background: white !important;
+    border: 1px solid #EDF2F7 !important;
+    font-size: 0.9rem;
+}
+
+/* --- MENU BA CHẤM TRÊN SET CARD --- */
+.set-card {
+    position: relative; /* Để icon ba chấm canh theo thẻ này */
+}
+
+.set-menu-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--gray);
+    cursor: pointer;
+    transition: 0.2s;
+    z-index: 10;
+}
+
+.set-menu-btn:hover {
+    background: #EDF2F7;
+    color: var(--text);
+}
+
+/* Menu xóa hiện lên khi cần */
+.delete-menu {
+    position: absolute;
+    top: 40px;
+    right: 10px;
+    background: white;
+    border: 1px solid #E2E8F0;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    padding: 5px;
+    display: none; /* Ẩn mặc định */
+    z-index: 100;
+}
+
+.delete-menu button {
+    background: none;
+    border: none;
+    color: #E53E3E;
+    padding: 8px 15px;
+    font-size: 0.85rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    white-space: nowrap;
+    width: 100%;
+    border-radius: 5px;
+}
+
+.delete-menu button:hover {
+    background: #FFF5F5;
+}
+
+/* --- HIỆU ỨNG LẬT THẺ 3D (STUDY MODE) --- */
+.study-card {
+    background: transparent;
+    width: 100%;
+    height: 300px;
+    perspective: 1000px; /* Tạo góc nhìn 3D */
+    cursor: pointer;
+}
+
+.study-card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: transform 0.6s cubic-bezier(0.4, 0.2, 0.2, 1);
+    transform-style: preserve-3d;
+}
+
+.study-card.flipped .study-card-inner {
+    transform: rotateY(180deg);
+}
+
+.study-card-front, .study-card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    backface-visibility: hidden; /* Ẩn mặt sau khi lật */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 600;
+    border-radius: 16px;
+    padding: 20px;
+    box-sizing: border-box;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+.study-card-front {
+    background-color: #FFFFFF;
+    border: 2px solid #E2E8F0;
+    color: #2D3748;
+}
+
+.study-card-back {
+    background-color: var(--primary);
+    color: white;
+    transform: rotateY(180deg);
+}
+
+
+
 /* SCHEDULER */
-.scheduler-grid {
+.schedule-container {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 25px;
+    align-items: start;
+}
+
+/* Sidebar Nhập liệu */
+.schedule-controls {
+    background: #FFFFFF !important;
+    border: 1px solid #E2E8F0 !important;
+    border-radius: 16px !important; /* Bo góc mềm mại */
+    padding: 24px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); /* Bóng đổ mờ */
+    position: sticky;
+    top: 20px;
+}
+
+.schedule-controls h3 {
+    color: #2D3748;
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #EDF2F7;
+    padding-bottom: 12px;
+}
+
+.schedule-controls .form-control {
+    background: #F8FAFC;
+    border: 1px solid #E2E8F0;
+    color: #2D3748;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    padding: 12px;
+    width: 100%;
+    transition: all 0.2s ease;
+}
+
+.schedule-controls .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(93, 95, 239, 0.1); /* Hiệu ứng sáng viền khi click */
+    outline: none;
+}
+
+/* Hai bảng hiển thị TKB */
+.schedule-display {
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+
+.board-wrapper h3 {
+    color: #4A5568;
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.schedule-board {
     display: grid;
     grid-template-columns: repeat(7, 1fr);
-    gap: 15px;
-    background: white;
-    padding: 25px;
-    border-radius: var(--radius);
-    font-family: var(--font-family);
+    gap: 1px; /* Tạo độ mỏng cho đường kẻ */
+    background: #E2E8F0; /* Màu của đường kẻ lưới */
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    overflow: hidden; /* Giữ nếp bo góc cho toàn bộ bảng */
 }
 
-.day-name { text-align: center; font-weight: 800; margin-bottom: 15px; }
-.slot {
+.day-column {
+    background: #FFFFFF;
+    min-height: 250px;
+    display: flex;
+    flex-direction: column;
+}
+
+.day-header {
+    background: #F8FAFC;
+    color: #4A5568;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    padding: 12px 0;
+    border-bottom: 1px solid #E2E8F0;
+}
+
+.task-list {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Thẻ công việc bận */
+.task-card {
+    border-radius: 8px;
     padding: 12px;
-    border-radius: 15px;
-    margin-bottom: 10px;
-    font-size: 0.8rem;
-    font-weight: 700;
+    color: #2D3748;
+    position: relative;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s ease;
+    cursor: default;
 }
 
-.slot.blue { background: var(--blue); color: white; }
-.slot.orange { background: var(--orange); }
-.slot.pink { background: var(--pink); }
-.slot.ai-suggest { 
-    border: 2px dashed var(--primary); 
-    color: var(--primary);
-    animation: pulse 2s infinite;
+.task-card:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px); /* Hiệu ứng nảy nhẹ khi di chuột */
 }
 
-@keyframes pulse {
-    0% { opacity: 0.7; }
-    50% { opacity: 1; }
-    100% { opacity: 0.7; }
+.task-card strong {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1A202C;
 }
 
+.task-card .task-time {
+    font-size: 0.75rem;
+    color: #718096;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.btn-del-task {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    opacity: 0;
+    background: #FFF5F5;
+    border: none;
+    color: #E53E3E;
+    border-radius: 6px;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.task-card:hover .btn-del-task {
+    opacity: 1;
+}
+
+.btn-del-task:hover {
+    background: #FED7D7;
+}
+
+/* Màu phân biệt lịch Bạn A và Bạn B */
+#board-A .task-card {
+    background: #EEF2FF; /* Nền xanh tím nhạt */
+    border-left: 4px solid var(--primary);
+    border-top: 1px solid #E0E7FF;
+    border-right: 1px solid #E0E7FF;
+    border-bottom: 1px solid #E0E7FF;
+}
+
+#board-B .task-card {
+    background: #F0FDF4; /* Nền xanh lá nhạt */
+    border-left: 4px solid #22C55E;
+    border-top: 1px solid #DCFCE7;
+    border-right: 1px solid #DCFCE7;
+    border-bottom: 1px solid #DCFCE7;
+}
+
+/* Nút bấm AI */
+#find-common-time-btn {
+    background: var(--primary);
+    color: white;
+    border: none;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 14px;
+    width: 100%;
+    margin-top: 10px;
+    box-shadow: 0 4px 12px rgba(93, 95, 239, 0.25);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+#find-common-time-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(93, 95, 239, 0.35);
+}
+
+#ai-result-box {
+    background: #FFFFFF;
+    border: 1px solid #E2E8F0;
+    border-radius: 12px;
+    padding: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+}
 /* --- Giao diện Cộng đồng (Social) --- */
 .feed-container {
     max-width: 700px;
