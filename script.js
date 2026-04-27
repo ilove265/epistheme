@@ -1424,9 +1424,14 @@ function loadUserExams(uid) {
                 card.innerHTML = `
                     <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
                         <div class="exam-tag">${exam.subject}</div>
-                        <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
-                            <i class="fas fa-trash"></i>
-                        </button>
+                        <div style="display: flex; gap: 5px;">
+                            <button class="btn-share" onclick="shareExam(event, '${examId}')" title="Chia sẻ link">
+                                <i class="fas fa-share-alt"></i>
+                            </button>
+                            <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
                     </div>
                     <h3 style="margin-top:10px">${exam.title}</h3>
                     <p style="font-size:0.85rem; color:var(--gray)"><i class="fas fa-list-ul"></i> ${exam.questions?.length || 0} câu hỏi</p>
@@ -1440,6 +1445,23 @@ function loadUserExams(uid) {
         });
     }
 
+
+    //chia sẻ bài tập
+    window.shareExam = (event, examId) => {
+    event.stopPropagation(); // Ngăn chặn sự kiện click vào thẻ card (mở bài tập)
+    
+    // Tạo URL chứa tham số examId
+    const shareUrl = `${window.location.origin}${window.location.pathname}?examId=${examId}`;
+    
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        // Bạn có thể thay alert bằng một thông báo toast đẹp hơn sau này
+        alert("Đã sao chép liên kết bài tập vào bộ nhớ tạm!");
+    }).catch(err => {
+        console.error('Không thể sao chép: ', err);
+    });
+};
+
+
     // ========================
     //  -DI CHUYỂN CÁC CỬA SỔ-
     // ========================
@@ -1450,4 +1472,20 @@ function loadUserExams(uid) {
     // TỐI ƯU GIAO DIỆN MOBILE
     // =======================
 
+});
+document.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const sharedExamId = urlParams.get('examId');
+
+    if (sharedExamId) {
+        // Đợi một chút để Firebase/App khởi tạo xong rồi gọi hàm startQuiz
+        setTimeout(() => {
+            if (typeof window.startQuiz === 'function') {
+                window.startQuiz(sharedExamId);
+                
+                // (Tùy chọn) Xóa tham số trên URL để thanh địa chỉ sạch hơn sau khi đã mở
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }, 1500); 
+    }
 });

@@ -709,6 +709,29 @@ textarea {
     transform: scale(1.1);
 }
 
+
+.btn-share {
+    background: #f1f5f9;
+    border: none;
+    color: var(--primary);
+    padding: 8px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+}
+
+.btn-share:hover {
+    background: var(--primary);
+    color: white;
+}
+
+/* Đảm bảo các nút trong header card không bị dính nhau */
+.exam-header-row div {
+    display: flex;
+    gap: 8px;
+}
+
 /* --- AI Assistant Sidebar --- */
 .ai-sidebar-assistant {
     position: absolute;
