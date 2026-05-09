@@ -339,6 +339,7 @@ main {
     grid-template-columns: 320px 1fr;
     gap: 25px;
     align-items: start;
+    
 }
 
 /* Sidebar Nhập liệu */
@@ -348,7 +349,7 @@ main {
     border-radius: 16px !important; /* Bo góc mềm mại */
     padding: 24px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04); /* Bóng đổ mờ */
-    position: sticky;
+    position:relative;
     top: 20px;
 }
 
