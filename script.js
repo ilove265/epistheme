@@ -1472,6 +1472,47 @@ function loadUserExams(uid) {
     // TỐI ƯU GIAO DIỆN MOBILE
     // =======================
 
+    const sidebar = document.querySelector('aside');
+    const sidebarToggleBtn = document.getElementById('sidebar-toggle');
+    
+    // Tạo phần tử overlay bằng JS và nhúng vào body
+    const overlay = document.createElement('div');
+    overlay.className = 'sidebar-overlay';
+    document.body.appendChild(overlay);
+
+    // Xử lý sự kiện nhấn nút 3 gạch
+    if (sidebarToggleBtn) {
+        sidebarToggleBtn.addEventListener('click', () => {
+            sidebar.classList.toggle('sidebar-open');
+            
+            // Đồng bộ trạng thái của overlay
+            if (sidebar.classList.contains('sidebar-open')) {
+                overlay.classList.add('active');
+            } else {
+                overlay.classList.remove('active');
+            }
+        });
+    }
+
+    // Đóng sidebar khi người dùng click ra vùng xám (overlay)
+    overlay.addEventListener('click', () => {
+        sidebar.classList.remove('sidebar-open');
+        overlay.classList.remove('active');
+    });
+
+    // UX nâng cao: Tự động đóng sidebar khi chọn xong một tab chức năng trên Mobile
+    navItems.forEach(item => {
+        item.addEventListener('click', () => {
+            if (window.innerWidth <= 768 && sidebar.classList.contains('sidebar-open')) {
+                sidebar.classList.remove('sidebar-open');
+                overlay.classList.remove('active');
+            }
+        });
+    });
+
+
+    //////////////////////////
+
 });
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
