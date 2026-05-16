@@ -215,13 +215,24 @@
             </div>
         </div>
         <div id="exam-selector-modal" class="modal" style="display: none; align-items: center; justify-content: center;">
-            <div class="modal-content" style="width: 400px; height: auto; max-height: 80vh; padding: 20px;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
-                    <h3>Chọn đề thi muốn chia sẻ</h3>
-                    <button onclick="document.getElementById('exam-selector-modal').style.display='none'" class="btn-ghost">&times;</button>
+            <div class="modal-content" style="width: 450px; height: auto; max-height: 80vh; padding: 20px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0;">Chọn tài liệu chia sẻ</h3>
+                    <button onclick="document.getElementById('exam-selector-modal').style.display='none'" class="btn-ghost" style="padding: 5px 12px; font-size: 1.2rem;">&times;</button>
                 </div>
-            <div id="selector-exam-list" style="overflow-y: auto;">
+                
+                <div class="modal-tabs">
+                    <button class="modal-tab-btn active" onclick="switchShareTab('exams')">Bài tập</button>
+                    <button class="modal-tab-btn" onclick="switchShareTab('flashcards')">Flashcards</button>
                 </div>
+    
+                <div style="flex-grow: 1; overflow-y: auto; padding-right: 5px;">
+                    <div id="selector-exam-list" class="share-tab-content active">
+                        </div>
+                    <div id="selector-fc-list" class="share-tab-content" style="display: none;">
+                        </div>
+                </div>
+            </div>
         </div>
     </div>
     </section>

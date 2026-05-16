@@ -3,6 +3,7 @@ import { signInWithPopup, signOut, onAuthStateChanged } from "firebase/auth";
 import { doc, setDoc, getDoc, getDocs } from "firebase/firestore";
 import { collection, addDoc, query, where, onSnapshot, updateDoc, arrayUnion, arrayRemove, orderBy, deleteDoc } from "firebase/firestore";
 document.addEventListener('DOMContentLoaded', () => {
+    let currentEditingExamId = null; // theo dõi đề thi đang sửa
     let currentQuizQuestions = []; // Lưu câu hỏi của đề đang làm
     //phần modal điểm
     const scoreResultModal = document.getElementById('score-result-modal');
@@ -273,22 +274,25 @@ postBtn.onclick = async () => {
 };
 
 //đăng bài thi
-btnChooseExam.onclick = async () => {
-        if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
-        examSelectorModal.style.display = 'flex';
-        selectorExamList.innerHTML = 'Đang tải...';
+btnChooseExam.onclick = () => {
+    if (!auth.currentUser) return alert("Vui lòng đăng nhập!");
+    examSelectorModal.style.display = 'flex';
+    window.switchShareTab('exams'); // Luôn mở tab bài tập đầu tiên
 
-        const q = query(collection(db, "exams"), where("userId", "==", auth.currentUser.uid));
-        // const snap = await getDoc(collection(db, "exams")); // Lấy nhanh danh sách
-        
-        // Render danh sách đề để chọn
-        onSnapshot(q, (snapshot) => {
-        selectorExamList.innerHTML = '';
+    const examListEl = document.getElementById('selector-exam-list');
+    const fcListEl = document.getElementById('selector-fc-list');
+
+    examListEl.innerHTML = '<p style="text-align:center; color:var(--gray);">Đang tải đề thi...</p>';
+    fcListEl.innerHTML = '<p style="text-align:center; color:var(--gray);">Đang tải Flashcards...</p>';
+
+    // 1. Tải danh sách Bài tập
+    const qExams = query(collection(db, "exams"), where("userId", "==", auth.currentUser.uid));
+    onSnapshot(qExams, (snapshot) => {
+        examListEl.innerHTML = '';
         if (snapshot.empty) {
-            selectorExamList.innerHTML = '<p style="padding:10px;">Bạn chưa có đề thi nào để chia sẻ.</p>';
+            examListEl.innerHTML = '<p style="padding:10px; color:var(--gray);">Bạn chưa có đề thi nào để chia sẻ.</p>';
             return;
         }
-        
         snapshot.forEach(docSnap => {
             const ex = docSnap.data();
             const item = document.createElement('div');
@@ -297,28 +301,71 @@ btnChooseExam.onclick = async () => {
             item.innerHTML = `
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <div>
-                        <strong>${ex.title}</strong>< clouds br>
+                        <strong>${ex.title}</strong><br>
                         <small style="color:var(--gray)">Môn: ${ex.subject}</small>
                     </div>
                     <i class="fas fa-chevron-right" style="color:var(--primary)"></i>
                 </div>
             `;
-            item.onclick = () => shareExamToCommunity(docSnap.id, ex);
-            
-            // Thêm hiệu ứng hover bằng JS (hoặc CSS)
             item.onmouseover = () => item.style.borderColor = "var(--primary)";
             item.onmouseout = () => item.style.borderColor = "#eee";
-            
-            selectorExamList.appendChild(item);
+            item.onclick = () => shareExamToCommunity(docSnap.id, ex);
+            examListEl.appendChild(item);
         });
     });
-        selectorExamList.innerHTML = '';
+
+    // 2. Tải danh sách Flashcard
+    const qFlashcards = query(collection(db, "flashcardSets"), where("userId", "==", auth.currentUser.uid));
+    onSnapshot(qFlashcards, (snapshot) => {
+        fcListEl.innerHTML = '';
         if (snapshot.empty) {
-            selectorExamList.innerHTML = '<p style="padding:10px;">Bạn chưa có đề thi nào để chia sẻ.</p>';
+            fcListEl.innerHTML = '<p style="padding:10px; color:var(--gray);">Bạn chưa có bộ thẻ nào để chia sẻ.</p>';
             return;
         }
-    };
+        snapshot.forEach(docSnap => {
+            const fc = docSnap.data();
+            const item = document.createElement('div');
+            item.className = 'card selector-item';
+            item.style = "margin-bottom: 10px; cursor: pointer; padding: 15px; border: 1px solid #eee; transition: 0.3s;";
+            item.innerHTML = `
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <div>
+                        <strong>${fc.title}</strong><br>
+                        <small style="color:var(--gray)">Số lượng: ${fc.cards.length} thẻ</small>
+                    </div>
+                    <i class="fas fa-share" style="color:#10B981"></i>
+                </div>
+            `;
+            item.onmouseover = () => item.style.borderColor = "#10B981";
+            item.onmouseout = () => item.style.borderColor = "#eee";
+            item.onclick = () => shareFlashcardToCommunity(docSnap.id, fc);
+            fcListEl.appendChild(item);
+        });
+    });
+};
 
+    // đưa flashcard lên 
+    async function shareFlashcardToCommunity(setId, fcData) {
+    if (!confirm(`Bạn muốn chia sẻ bộ thẻ "${fcData.title}" lên cộng đồng?`)) return;
+    
+    await addDoc(collection(db, "posts"), {
+        userId: auth.currentUser.uid,
+        userName: auth.currentUser.displayName,
+        userAvatar: auth.currentUser.photoURL,
+        type: "flashcard",
+        fcId: setId,
+        fcTitle: fcData.title,
+        fcCount: fcData.cards.length,
+        content: `Mình vừa tạo bộ thẻ ghi nhớ mới. Mọi người vào ôn tập chung nhé!`,
+        likes: [],
+        comments: [],
+        createdAt: new Date()
+    });
+
+    examSelectorModal.style.display = 'none';
+    alert("Đã chia sẻ Flashcard thành công!");
+}
+    // đưa bài tập lên
     async function shareExamToCommunity(examId, examData) {
         if (!confirm(`Bạn muốn chia sẻ đề "${examData.title}" lên cộng đồng?`)) return;
         
@@ -399,6 +446,21 @@ function loadCommunityFeed() {
                         </div>
                     `;
                 }
+                else if (post.type === "flashcard") {
+                    postBodyHTML = `
+                        <p>${post.content}</p>
+                        <div class="card" style="border-left: 5px solid #10B981; background: #ECFDF5; margin-top: 10px; padding: 15px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center;">
+                                <div>
+                                    <span class="exam-tag" style="background:#10B981; color:white"><i class="fas fa-clone"></i> Flashcards</span>
+                                    <h4 style="margin: 5px 0;">${post.fcTitle}</h4>
+                                    <small style="color:var(--gray)">${post.fcCount} thẻ ghi nhớ</small>
+                                </div>
+                                <button class="btn-primary" style="background: #10B981; border:none;" onclick="window.viewSharedFlashcard('${post.fcId}')">Học thẻ</button>
+                            </div>
+                        </div>
+                    `;
+                }
 
                 const isOwner = auth.currentUser && post.userId === auth.currentUser.uid;
                 const deleteBtnHTML = isOwner ? `
@@ -444,6 +506,39 @@ function loadCommunityFeed() {
             });
         });
     }
+
+// chuyển tab trong bảng chọn chia sẻ
+window.switchShareTab = (tabName) => {
+    const btns = document.querySelectorAll('.modal-tab-btn');
+    const examList = document.getElementById('selector-exam-list');
+    const fcList = document.getElementById('selector-fc-list');
+
+    btns[0].classList.toggle('active', tabName === 'exams');
+    btns[1].classList.toggle('active', tabName === 'flashcards');
+
+    examList.style.display = tabName === 'exams' ? 'block' : 'none';
+    fcList.style.display = tabName === 'flashcards' ? 'block' : 'none';
+};
+
+// mở flashcard
+window.viewSharedFlashcard = async (setId) => {
+    try {
+        const docSnap = await getDoc(doc(db, "flashcardSets", setId));
+        if (docSnap.exists()) {
+            const data = docSnap.data();
+            
+            // Ép giao diện chuyển hướng qua màn hình Flashcards
+            document.querySelector('.nav-item[data-target="flashcards"]').click();
+            
+            // Kích hoạt hàm Study mode đang có sẵn của bạn
+            openStudyMode(data.title, data.cards);
+        } else {
+            alert("Rất tiếc! Bộ thẻ này đã bị tác giả xóa.");
+        }
+    } catch (error) {
+        console.error("Lỗi khi mở Flashcard:", error);
+    }
+};
 
 // 4. Xử lý Like
 window.handleLike = async (postId, isLiked) => {
@@ -776,12 +871,6 @@ window.confirmDeleteSet = async (event, setId) => {
         }
     }
 };
-
-// Đóng menu nếu click ra ngoài
-document.addEventListener('click', () => {
-    document.querySelectorAll('.delete-menu').forEach(m => m.style.display = 'none');
-});
-
 // 4. Logic Chế độ học (Study Mode)
 function openStudyMode(title, cards) {
     currentStudySet = cards;
@@ -913,12 +1002,6 @@ window.toggleCmtMenu = (event, menuId) => {
     const menu = document.getElementById(`dropdown-${menuId}`);
     menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
 };
-
-// Đóng menu khi click ra ngoài
-document.addEventListener('click', () => {
-    document.querySelectorAll('.comment-dropdown').forEach(el => el.style.display = 'none');
-});
-
 // Hàm xóa bình luận
 window.deleteComment = async (postId, cmtObject) => {
     if (!confirm("Bạn có chắc chắn muốn xóa bình luận này không?")) return;
@@ -1008,8 +1091,12 @@ const liveQuizPreview = document.getElementById('live-quiz-preview');
 
 // 1. Mở và Thoát trình soạn
 document.querySelector('#exams .btn-primary').onclick = () => {
+    // Reset mọi trạng thái
+    currentEditingExamId = null; 
+    document.getElementById('editor-title').value = '';
+    fastQuizInput.value = '';
+    
     editorOverlay.style.display = 'flex';
-    // fastQuizInput.value = "câu 1 Thủ đô của Việt Nam là gì?\nA. Đà Nẵng\nB. TP Hồ Chí Minh\nC. Hà Nội.*\nD. Hải Phòng";
     updatePreview();
 };
 
@@ -1244,16 +1331,33 @@ document.getElementById('save-exam-btn').onclick = async () => {
     btn.innerText = "Đang lưu...";
 
     try {
-        await addDoc(collection(db, "exams"), {
-            userId: auth.currentUser.uid,
-            title,
-            subject,
-            questions: finalQuestions,
-            createdAt: new Date()
-        });
-        alert("Đã lưu đề thi thành công!");
+        if (currentEditingExamId) {
+            // NẾU ĐANG CHỈNH SỬA: Dùng updateDoc
+            await updateDoc(doc(db, "exams", currentEditingExamId), {
+                title,
+                subject,
+                questions: finalQuestions,
+                updatedAt: new Date() // Thêm dấu thời gian cập nhật
+            });
+            alert("Đã cập nhật đề thi thành công!");
+        } else {
+            // NẾU LÀ TẠO MỚI: Dùng addDoc
+            await addDoc(collection(db, "exams"), {
+                userId: auth.currentUser.uid,
+                title,
+                subject,
+                questions: finalQuestions,
+                createdAt: new Date()
+            });
+            alert("Đã tạo đề thi thành công!");
+        }
+
+        // Đóng và dọn dẹp trình soạn thảo
         editorOverlay.style.display = 'none';
         document.getElementById('editor-title').value = '';
+        fastQuizInput.value = ''; 
+        currentEditingExamId = null; // Reset lại biến cờ
+        
     } catch (e) { 
         console.error(e); 
         alert("Lỗi khi lưu đề thi!");
@@ -1303,7 +1407,7 @@ function renderReviewMode() {
         topBtn.innerText = "Nộp bài"; // Reset lại cho lần sau
     };
 }
-
+// xóa bài tập
 window.deleteExam = async (e, examId) => {
     // Logic Xóa đề thi của bạn được giữ nguyên
     e.stopPropagation();
@@ -1315,6 +1419,62 @@ window.deleteExam = async (e, examId) => {
         }
     }
 };
+// đóng mở menu 3 chấm
+window.toggleExamMenu = (event, examId) => {
+    event.stopPropagation();
+    // Đóng tất cả các menu bài tập khác đang mở
+    document.querySelectorAll('.exam-dropdown').forEach(m => {
+        if(m.id !== `exam-menu-${examId}`) m.style.display = 'none';
+    });
+
+    const menu = document.getElementById(`exam-menu-${examId}`);
+    menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+};
+
+// chuyển dữ liệu từ firebase vào lại để chỉnh sửa
+window.editExam = async (event, examId) => {
+    event.stopPropagation();
+    document.getElementById(`exam-menu-${examId}`).style.display = 'none';
+
+    try {
+        const docSnap = await getDoc(doc(db, "exams", examId));
+        if (docSnap.exists()) {
+            const exam = docSnap.data();
+            
+            // 1. Điền thông tin cơ bản
+            document.getElementById('editor-title').value = exam.title;
+            document.getElementById('editor-subject').value = exam.subject;
+
+            // 2. Build lại Raw Text từ Object
+            let rawText = "";
+            exam.questions.forEach((q, index) => {
+                rawText += `câu ${index + 1} ${q.question}\n`;
+                // Duyệt qua các đáp án A, B, C, D
+                for (const [key, value] of Object.entries(q.options)) {
+                    if(value) { // Đảm bảo option đó có chữ
+                        const isCorrect = (key === q.answer) ? "*" : "";
+                        rawText += `${key}. ${value}${isCorrect}\n`;
+                    }
+                }
+                rawText += "\n";
+            });
+
+            // 3. Đẩy vào Textarea
+            fastQuizInput.value = rawText.trim();
+            
+            // 4. Lưu trạng thái là đang Edit
+            currentEditingExamId = examId;
+            
+            // 5. Mở overlay và render preview
+            editorOverlay.style.display = 'flex';
+            updatePreview();
+        }
+    } catch (error) {
+        console.error("Lỗi tải đề thi để chỉnh sửa: ", error);
+        alert("Không thể tải dữ liệu đề thi!");
+    }
+};
+
 
 // phần cũ 16/4/2026
 
@@ -1408,42 +1568,55 @@ window.startQuiz = async (examId) => {
 
 
 function loadUserExams(uid) {
-        if (!examListContainer) return;
-        const q = query(collection(db, "exams"), where("userId", "==", uid));
-        
-        onSnapshot(q, (snapshot) => {
-            examListContainer.innerHTML = '';
-            snapshot.forEach((docSnap) => {
-                const exam = docSnap.data();
-                const examId = docSnap.id;
-                
-                const card = document.createElement('div');
-                card.className = 'card exam-card';
-                card.onclick = () => window.startQuiz(examId);
-
-                card.innerHTML = `
-                    <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
-                        <div class="exam-tag">${exam.subject}</div>
-                        <div style="display: flex; gap: 5px;">
-                            <button class="btn-share" onclick="shareExam(event, '${examId}')" title="Chia sẻ link">
-                                <i class="fas fa-share-alt"></i>
+    if (!examListContainer) return;
+    const q = query(collection(db, "exams"), where("userId", "==", uid));
+    
+    onSnapshot(q, (snapshot) => {
+        examListContainer.innerHTML = '';
+        snapshot.forEach((docSnap) => {
+            const exam = docSnap.data();
+            const examId = docSnap.id;
+            
+            const card = document.createElement('div');
+            card.className = 'card exam-card';
+            // Không mở quiz ngay khi click vào toàn bộ thẻ nữa để tránh xung đột với menu ba chấm
+            
+            card.innerHTML = `
+                <div class="exam-header-row" style="display:flex; justify-content: space-between; align-items: flex-start;">
+                    <div class="exam-tag">${exam.subject}</div>
+                    <div style="display: flex; gap: 5px; align-items: center;">
+                        <button class="btn-share" onclick="shareExam(event, '${examId}')" title="Chia sẻ link">
+                            <i class="fas fa-share-alt"></i>
+                        </button>
+                        
+                        <div class="exam-menu-container">
+                            <button class="exam-menu-btn" onclick="window.toggleExamMenu(event, '${examId}')">
+                                <i class="fas fa-ellipsis-v"></i>
                             </button>
-                            <button class="btn-delete" onclick="deleteExam(event, '${examId}')">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div id="exam-menu-${examId}" class="exam-dropdown" style="display: none;">
+                                <button onclick="window.editExam(event, '${examId}')">
+                                    <i class="fas fa-edit"></i> Chỉnh sửa
+                                </button>
+                                <button class="delete-btn" onclick="deleteExam(event, '${examId}')">
+                                    <i class="fas fa-trash-alt"></i> Xóa đề thi
+                                </button>
+                            </div>
                         </div>
                     </div>
+                </div>
+                <div>
                     <h3 style="margin-top:10px">${exam.title}</h3>
                     <p style="font-size:0.85rem; color:var(--gray)"><i class="fas fa-list-ul"></i> ${exam.questions?.length || 0} câu hỏi</p>
-                    <div style="margin-top:15px; display:flex; justify-content:space-between; align-items:center;">
-                         <span style="font-size:0.8rem; color:#cbd5e0">${new Date(exam.createdAt?.toDate()).toLocaleDateString()}</span>
-                         <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;">Làm bài</button>
-                    </div>
-                `;
-                examListContainer.appendChild(card);
-            });
+                </div>
+                <div style="margin-top:15px; display:flex; justify-content:space-between; align-items:center;">
+                     <span style="font-size:0.8rem; color:#cbd5e0">${new Date(exam.createdAt?.toDate()).toLocaleDateString()}</span>
+                     <button class="btn-primary" style="padding: 5px 15px; font-size: 0.8rem;" onclick="window.startQuiz('${examId}')">Làm bài</button>
+                </div>
+            `;
+            examListContainer.appendChild(card);
         });
-    }
+    });
+}
 
 
     //chia sẻ bài tập
@@ -1511,7 +1684,12 @@ function loadUserExams(uid) {
     });
 
 
-    //////////////////////////
+    // MENU XÓA BÀI TẬP, CMT, FLASHCARD //
+    document.addEventListener('click', () => {
+        document.querySelectorAll('.delete-menu').forEach(m => m.style.display = 'none');
+        document.querySelectorAll('.comment-dropdown').forEach(el => el.style.display = 'none');
+        document.querySelectorAll('.exam-dropdown').forEach(el => el.style.display = 'none'); // Thêm dòng này
+    });
 
 });
 document.addEventListener('DOMContentLoaded', () => {
