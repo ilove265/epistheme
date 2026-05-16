@@ -438,7 +438,7 @@ function loadCommunityFeed() {
                         <div class="card" style="border-left: 5px solid var(--primary); background: #f0f2ff; margin-top: 10px; padding: 15px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div>
-                                    <span class="exam-tag" style="background:var(--primary); color:white">${post.examSubject}</span>
+                                    <span class="exam-tag" style="color:black"><i class="fas fa-book"></i> ${post.examSubject}</span>
                                     <h4 style="margin: 5px 0;">${post.examTitle}</h4>
                                 </div>
                                 <button class="btn-primary" onclick="window.startQuiz('${post.examId}')">Thử sức ngay</button>
@@ -452,7 +452,7 @@ function loadCommunityFeed() {
                         <div class="card" style="border-left: 5px solid #10B981; background: #ECFDF5; margin-top: 10px; padding: 15px;">
                             <div style="display:flex; justify-content:space-between; align-items:center;">
                                 <div>
-                                    <span class="exam-tag" style="background:#10B981; color:white"><i class="fas fa-clone"></i> Flashcards</span>
+                                    <span class="exam-tag" style="color:black"><i class="fas fa-clone"></i> Flashcards</span>
                                     <h4 style="margin: 5px 0;">${post.fcTitle}</h4>
                                     <small style="color:var(--gray)">${post.fcCount} thẻ ghi nhớ</small>
                                 </div>
